@@ -1,0 +1,12 @@
+#!/bin/bash
+
+xterm -e "./run" &
+sleep 2
+WinSize=`xwininfo -name "Figure 1" | grep geometry | cut -f 4 -d ' ' | cut -f 1 -d '-'`
+echo $WinSize
+WinInfo=`xwininfo -name "Figure 1" | grep 'Corners:' | sed -e 's/^ //g'`
+echo $WinInfo
+ulC=`echo $WinInfo | cut -f 2 -d ' ' | sed -e 's/+/,/2'`
+ffmpeg -y -video_size $WinSize -framerate 25 -f x11grab -i :0.0$ulC -t 90 winCapture.mp4
+mplayer winCapture.mp4 
+
