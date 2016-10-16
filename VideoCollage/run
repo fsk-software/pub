@@ -1,0 +1,79 @@
+#!/bin/bash
+
+log()
+{
+  echo "__(log) "$* 2>&1
+}
+
+N=100
+
+grabYtVideos()
+{
+  Y=$1
+  outFile=./list.txt
+  url="https://en.wikipedia.org/wiki/Billboard_Year-End_Hot_100_singles_of_$Y"
+  log "grabbing Billboard Singles List for $Y from $url"
+  lynx --dump -nonumbers $url > $outFile
+
+  L=`awk '/Title/,/ 100 /' $outFile | grep -v Title`
+  IFS=$'\n'
+  for el in $L; do
+    log "el: $el"
+    num=`echo $el | sed -n 's/\(.*\)\"\(.*\)\" \(.*\)/\1/p' | sed -e "s/^ *//g" | sed -e "s/ *$//g"`
+    title=`echo $el | sed -n 's/.*\"\(.*\)\" \(.*\)/\1/p'`
+    artist=`echo $el | sed -n 's/.*\"\(.*\)\" \(.*\)/\2/p'`
+    #--replace special characters that give give the search trouble
+    artist=`echo $artist | sed -e "s/é/e/g"`
+    log "title: $title"
+    log "artist: $artist"
+    log "num: $num"
+    log "$num;$title;$artist" 
+    prefixName="Yt-`printf %03d ${num%.*}`"
+    overlayName="`printf %03d ${num%.*}`".png
+    youtube-dl --verbose "gvsearch1:$title $artist" -f 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best' --output $prefixName > /dev/null
+    if [ ! -e $prefixName.mp4 ]; then
+      ffmpeg -y -i $prefixName* -strict -2 -f h264 $prefixName.mp4
+    fi
+    convert -background white -fill black -font FreeSerif-Italic -pointsize 46 label:"$num - $artist - $title" $overlayName
+
+    if [ $num -ge $N ]; then
+      break;
+    fi
+  done
+  unset IFS
+
+}
+
+normalizeVideos()
+{
+  for n in `seq 1 $N`; do
+    N=`printf %03d ${n%.*}`
+    log "$n == $N"
+    iH=`identify $N.png | cut -f 3 -d ' ' | cut -f 2 -d 'x'`
+
+    ffmpeg -y -i Yt-$N.mp4 -vf "[in] scale=hd720 [top]; movie=$N.png[bottom]; [top][bottom] overlay=0:H-$iH [out]" -strict -2 -ss 60 -t 15 -r 30 clip-$N.mp4
+
+  done
+}
+
+concatVideos()
+{
+  outFile="./files.txt";
+  videoFileName="video.mp4";
+  rm $outFile
+  for n in `seq 1 $N`; do
+    N=`printf %03d ${n%.*}`
+    echo "file 'clip-$N.mp4'" >> $outFile
+  done
+  ffmpeg -y -f concat -i $outFile -strict -2 -r 30 $videoFileName> /dev/null
+
+}
+
+#---main---
+log "main process initializing"
+ Y=1994
+ grabYtVideos $Y
+ normalizeVideos
+ concatVideos
+log "main process terminating"
+
