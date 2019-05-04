@@ -1,0 +1,15 @@
+#!/usr/bin/python
+import zmq;
+import sys;
+import time;
+
+port=int(sys.argv[1]);
+ctx=zmq.Context();
+socket=ctx.socket(zmq.REQ);
+socket.connect('tcp://localhost:%d'%(port));
+
+while (True):
+  time.sleep(1);
+  socket.send('ping');
+  S=socket.recv();
+  print "got reply: %s"%(S);

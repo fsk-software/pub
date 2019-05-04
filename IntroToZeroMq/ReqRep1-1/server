@@ -1,0 +1,14 @@
+#!/usr/bin/python
+import zmq;
+import sys;
+import time;
+
+port=int(sys.argv[1]);
+ctx=zmq.Context();
+socket=ctx.socket(zmq.REP);
+socket.bind('tcp://*:%d'%(port));
+
+while (True):
+  S=socket.recv();
+  print 'got: %s'%(S);
+  socket.send('pong');

@@ -1,0 +1,15 @@
+#!/usr/bin/python
+import sys;
+import zmq;
+
+port=int(sys.argv[1]);
+ctx = zmq.Context();
+socket=ctx.socket(zmq.SUB);
+socket.connect('tcp://localhost:%s'%port);
+
+topic='TopicXX';
+socket.setsockopt_string(zmq.SUBSCRIBE, topic.decode('ascii'));
+
+while True:
+  S=socket.recv();
+  print "S: %s"%(S);

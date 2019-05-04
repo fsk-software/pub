@@ -1,0 +1,16 @@
+#!/usr/bin/python
+import sys;
+import zmq;
+from random import randrange;
+import time;
+
+port=int(sys.argv[1]);
+ctx = zmq.Context();
+socket=ctx.socket(zmq.PUB);
+socket.bind('tcp://*:%s'%port);
+
+topic='TopicXX';
+while True:
+  print "publishing";
+  socket.send('%s %s'%(topic, randrange(0,100)));
+  time.sleep(1);
