@@ -1,0 +1,44 @@
+#!/usr/bin/python
+import cv2;
+import Shaper;
+import sys;
+
+#--Note: used modified blog/YOLO-python sample utility on source video (after blocking out lower 
+#--      1/2 to avoid audience detects) to get (frame#,(x,y)) tuple list
+with open('frameList.py') as fd:
+   exec(fd.read());
+
+xShaper=Shaper.Shaper(0.0); 
+yShaper=Shaper.Shaper(0.0); 
+fileName=sys.argv[1]; 
+W=144; H=96; 
+vidCapture = cv2.VideoCapture(fileName); 
+
+gotFrame, frame = vidCapture.read(); 
+fourcc = cv2.cv.CV_FOURCC(*'XVID');
+iH, iW, channels = frame.shape
+
+fps = vidCapture.get(cv2.cv.CV_CAP_PROP_FPS);
+out = cv2.VideoWriter('vidTracker.avi',fourcc, fps, (iW,iH));
+
+K=0; 
+while(vidCapture.isOpened() and gotFrame): 
+  xShaper.step(0.10); 
+  yShaper.step(0.10); 
+  x=xShaper.position(); 
+  y=yShaper.position(); 
+  cv2.rectangle(frame, (int(x - W / 2), int(y - H / 2)), (int(x + W / 2), int(y + H / 2)), (255, 0, 0), thickness=2); 
+  out.write(frame);
+  cv2.imshow('output', frame); 
+  if cv2.waitKey(1) & 0xFF == ord('q'): 
+    break; 
+  K+=1; 
+  L0=[el for el in L if K > el[0]];
+  xref=L0[-1][1][0];
+  yref=L0[-1][1][1];
+  xShaper.moveTo(xref);
+  yShaper.moveTo(yref);
+  gotFrame, frame = vidCapture.read(); 
+out.release();
+
+print "done";

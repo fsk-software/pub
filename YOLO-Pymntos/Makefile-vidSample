@@ -1,0 +1,59 @@
+all: video.mp4
+
+video.mp4: snip01-scaled.mp4 snip02-scaled.mp4 snip03-scaled.mp4 snip04-scaled.mp4 snip05-scaled.mp4 snip06-scaled.mp4 snip07-scaled.mp4
+	${SH} for f in $^; do echo "file '$$f'" >> concat.txt; done
+	${SH} ffmpeg -f concat -i concat.txt -vf scale=320:240 -strict -2 $@
+	${SH} rm concat.txt
+	${SH} ffprobe -v error -select_streams v:0 -show_entries stream=nb_frames -of default=nokey=1:noprint_wrappers=1 $@
+
+%-scaled.mp4: %.mp4
+	${SH} ffmpeg -y -i $< -filter_complex "scale=1920:-2:force_original_aspect_ratio=decrease,scale=-2:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2" -acodec copy -r 30/1 $@
+
+snip01.mp4: clip01.mp4
+	${SH} ffmpeg -i $< -ss 0 -t 12 -acodec copy $@
+
+snip02.mp4: clip02.mp4
+	${SH} ffmpeg -i $< -ss 0 -t 10 -acodec copy $@
+
+snip02b.mp4: clip02.mp4
+	${SH} ffmpeg -i $< -ss 115 -t 5 -acodec copy $@
+
+snip03.mp4: clip03.mp4
+	${SH} ffmpeg -i $< -ss 0 -t 10 -acodec copy $@
+
+snip04.mp4: clip04.mp4
+	${SH} ffmpeg -i $< -ss 0 -t 10 -acodec copy $@
+
+snip05.mp4: clip05.mp4
+	${SH} ffmpeg -i $< -ss 34 -t 10 -acodec copy $@
+
+snip06.mp4: clip06.mp4
+	${SH} ffmpeg -i $< -ss 0 -t 10 -acodec copy $@
+
+snip07.mp4: clip07.mp4
+	${SH} ffmpeg -i $< -ss 20 -t 10 -acodec copy $@
+
+clip01.mp4:
+	${SH} youtube-dl --format=mp4 -o $@ https://www.youtube.com/watch?v=sfN2Hw5Cd3U 
+
+clip02.mp4:
+	${SH} youtube-dl --format=mp4 -o $@ https://www.youtube.com/watch?v=6FQsIfE7sZM
+
+clip03.mp4:
+	${SH} youtube-dl --format=mp4 -o $@ https://www.youtube.com/watch?v=H7RUiKsuR_U
+
+clip04.mp4:
+	${SH} youtube-dl --format=mp4 -o $@ https://www.youtube.com/watch?v=pqQSwQLDIK8
+
+clip05.mp4:
+	${SH} youtube-dl --format=mp4 -o $@ https://www.youtube.com/watch?v=9rSBmOgpcDE
+
+clip06.mp4:
+	${SH} youtube-dl --format=mp4 -o $@ https://www.youtube.com/watch?v=frTYcaOTRKo
+
+clip07.mp4:
+	${SH} youtube-dl --format=mp4 -o $@ https://www.youtube.com/watch?v=bNYXweQ81vI
+
+
+clean:
+	${RM} *.mp4
