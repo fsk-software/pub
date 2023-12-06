@@ -1,4 +1,4 @@
-PHONY: tests
+.PHONY: test
 all:
 
 setup:
@@ -6,10 +6,13 @@ setup:
 #	${SH} sudo apt-get install -y mysql-server
 #	${SH} sudo apt-get install -y python-mysql.connector
 #	${SH} sudo apt-get install -y cpputest
-#	${SH} sudo mysql -u root -e "CREATE USER 'USER123'@'localhost' IDENTIFIED BY 'XXXXXXX'; GRANT ALL ON *.* TO 'dbadmin'@'localhost';"
+#	${SH} sudo mysql -u root -e "CREATE USER 'dbadmin'@'localhost' IDENTIFIED BY 'Mariner'; GRANT ALL ON *.* TO 'dbadmin'@'localhost';"
 #	${SH} sudo apt-get install -y liblog4cxx-dev
 
-tests:
+test:
+	${SH} cd tests; make
 
 
 clean:
+	${SH} cd tests; make clean
+	${RM} -rf ./__pycache__/
