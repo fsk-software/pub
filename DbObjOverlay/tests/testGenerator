@@ -1,0 +1,101 @@
+#!/usr/bin/python3
+import glob
+import sys
+import re
+
+sys.path.append('../')
+
+import odbPreprocessor
+
+def typeConverter(dbType):
+  #@todo: duplicated from CppGenerator
+  m=re.match(r'.*\((.*)\).*',dbType)
+  vType=dbType.replace("(%s)"%(m.group(1)),"()") if m else dbType
+  TypeMapper={
+               'float'    :  'float',
+               'bigint'   :  'long',
+               'text'     :  'std::string',
+               'char'     :  'char',
+               'char()'   :  'std::string',
+               'varchar'  :  'std::string',
+               'int'      :  'int',
+               'double'   :  'double',
+               'date'     :  'std::string',
+               'datetime' :  'std::string',
+             }
+  return TypeMapper[vType] if m else TypeMapper[dbType]
+
+
+def defaultValues(dType):
+  pType=dType.split('(')[0] if re.match('.*\(.*\).*',dType) else dType
+  DefaultVals={
+                "int"     : "1",
+                "float"   : "1.2345",
+                "double"  : "2.4680",
+                "text"    : '"abc"',
+                "char"    : "'a'",
+                "char()"  : '"a"',
+                "varchar" : '"a"',
+                "bigint"  : "100",
+              };
+  return DefaultVals[pType];
+
+for file in glob.glob('*.odb'):
+  L=[]
+  obj=odbPreprocessor.Odb()
+  dbEls=obj.parseOdbFile(file)
+  moduleName=file.replace('.odb','')
+  L.append('#include "%s.h"'%(moduleName))
+  L.append('#include "log4cxx/logger.h"')
+  L.append('#include "log4cxx/basicconfigurator.h"')
+  L.append('#include <chrono>')
+
+  L.append("float randoFloat() { return float(rand()); }")
+  L.append("double randoDouble() { return double(rand()); }")
+  L.append("int randoInt() { return int(rand()); }")
+  L.append('std::string randoText() { return(std::string("some string")); }')
+  L.append("int randoBigint() { return int(rand()); }")
+
+  testNum=0
+  for k,v in dbEls.items():
+    L.append('void test%02d()'%(testNum))
+    L.append('{')
+    L.append('  try')
+    L.append('  {')
+    L.append('        DbConnector::instance()->execute("DROP TABLE %s;");'%(k))
+    L.append('  } catch(sql::SQLException e)')
+    L.append('  {')
+    L.append('  }')
+    pKeyList=[el for el in v if el[2]]
+    el=pKeyList[0]
+    L.append('  const %s pKey(%s);'%(typeConverter(el[1]),defaultValues(el[1])))
+    L.append('  %s obj(%s);'%(k,'pKey'))
+    elList=[el for el in v if not el[2]]
+    for e in elList:
+      L.append("  const %s %s = %s;"%(typeConverter(e[1]),e[0],'rando%s()'%(e[1][0].upper()+e[1][1:])))
+      fName=e[0][0].upper()+e[0][1:]
+      dType=e[1][0].upper()+e[1][1:]
+      setterFxn='obj.set%s(%s);'%(fName,e[0])
+      L.append("  %s"%(setterFxn))
+      getterFxn='obj.get%s()'%(fName)
+      L.append("  assert(%s==%s);"%(e[0],getterFxn))
+    L.append('}\n')
+    testNum+=1
+
+  L.append("int main(int argc, char* argv[])")
+  L.append("{")
+  L.append('  using namespace log4cxx;')
+  L.append('  using namespace log4cxx::helpers;')
+  L.append('  BasicConfigurator::configure();')
+  L.append('  LoggerPtr logger(Logger::getLogger("main"));')
+  L.append('  const auto startTs{std::chrono::steady_clock::now()};')
+
+  for i in range(0,testNum):
+    L.append("  test%02d();"%(i))
+
+  L.append('  const auto stopTs{std::chrono::steady_clock::now()};')
+  L.append('  const std::chrono::duration<double> elapsedSecs{stopTs - startTs};')
+  L.append('  LOG4CXX_DEBUG(logger, "main process terminating; elapsed time(" << elapsedSecs.count() << ")");')
+  L.append("}")
+
+print('\n'.join(L)+'\n')
