@@ -3,22 +3,20 @@
 dbclass MyRecord001
   int val01 as key;
 end;
-
-dbclass MyRecord002
-  float val01 as key;
-end;
-
-dbclass MyRecord003
-  double val01 as key;
-end;
-
-dbclass MyRecord005
-  char val01 as key;
-end;
-
+#
+#dbclass MyRecord002
+#  float val01 as key;
+#end;
+#
+#dbclass MyRecord003
+#  double val01 as key;
+#end;
 #
 #dbclass MyRecord005
-#  char(1) val01 as key;
+#  char val01 as key;
+#end;
+#dbclass MyRecord005
+#  char(24) val01 as key;
 #end;
 #
 #dbclass MyRecord006
