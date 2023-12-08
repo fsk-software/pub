@@ -68,17 +68,17 @@ for file in glob.glob('*.odb'):
     L.append('  }')
     pKeyList=[el for el in v if el[2]]
     el=pKeyList[0]
-    L.append('  const %s pKey(%s);'%(typeConverter(el[1]),defaultValues(el[1])))
+    L.append('  const %s pKey(%s);'%(typeConverter(el.name),defaultValues(el.name)))
     L.append('  %s obj(%s);'%(k,'pKey'))
     elList=[el for el in v if not el[2]]
     for e in elList:
-      L.append("  const %s %s = %s;"%(typeConverter(e[1]),e[0],'rando%s()'%(e[1][0].upper()+e[1][1:])))
-      fName=e[0][0].upper()+e[0][1:]
-      dType=e[1][0].upper()+e[1][1:]
-      setterFxn='obj.set%s(%s);'%(fName,e[0])
+      L.append("  const %s %s = %s;"%(typeConverter(e.name),e.type,'rando%s()'%(e.name.type.upper()+e.name[1:])))
+      fName=e.type[0].upper()+e.type[1:]
+      dType=e.name[0].upper()+e.name[1:]
+      setterFxn='obj.set%s(%s);'%(fName,e.type)
       L.append("  %s"%(setterFxn))
       getterFxn='obj.get%s()'%(fName)
-      L.append("  assert(%s==%s);"%(e[0],getterFxn))
+      L.append("  assert(%s==%s);"%(e.type,getterFxn))
     L.append('}\n')
     testNum+=1
 

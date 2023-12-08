@@ -31,6 +31,21 @@ class CppGenerator:
     self.createHeader()
     self.createBody()
 
+  @staticmethod
+  def camelCase(L):
+    if(len(L)):
+      retVal=[L[0][0].upper()+L[0][1:]]
+      for e in [el for el in camelCase(L[1:])]: 
+        retVal.append(e)
+      return "".join(retVal)
+    else:
+      return ""
+
+  def setterSigniture(el):
+    retVal=[]
+    retVal.append('void set%s(%s %s)'%(el.name),'el.type','el.name')
+    return retVal
+
   def createHeader(self):
     with open(self.moduleName+".h",'w+') as fp:
       macroName=("%s_h"%(self.moduleName)).upper()
@@ -69,8 +84,8 @@ class CppGenerator:
 
   def genVarLenTypes(self, className, objList):
     retVal=[]
-    #varElList=[el for el in objList if re.match(r'.*\(.*\).*',el.field)]
-    varElList=[el for el in objList if re.match(r'.*\(.*\).*',el.field)]
+    #varElList=[el for el in objList if re.match(r'.*\(.*\).*',el.name)]
+    varElList=[el for el in objList if re.match(r'.*\(.*\).*',el.name)]
     retVal.append('typedef struct type24')
     retVal.append('{')
     retVal.append('char x[24];')
@@ -82,7 +97,7 @@ class CppGenerator:
 
   def ctorDef(self,className,objList):
     retVal=list()
-    argList=["const %s& %s"%(typeConverter(el.field),el.type) for el in [e for e in objList if e[2]]]
+    argList=["const %s& %s"%(typeConverter(el.name),el.type) for el in [e for e in objList if e[2]]]
     retVal.append("%s(%s);"%(className,','.join(argList)))
     return retVal
 
@@ -99,7 +114,7 @@ class CppGenerator:
     retVal.append('void %s::populateFromSql(const DbConnector::KvpType& kvp)'%(className))
     retVal.append('{')
     for e in mutableAttribList:
-      dType=typeConverter(e.field)
+      dType=typeConverter(e.name)
       camelCaseType="%s%s"%(dType.type.upper(),dType[1:])
       typeConvertFx='DbConnector::convertTo%s(%s)'%(camelCaseType,'kvp.at("%s")'%(e.type)) if dType != 'std::string' else 'kvp.at("%s")'%e.type
       retVal.append('  this->%s=%s;'%(e.type,typeConvertFx))
@@ -110,13 +125,13 @@ class CppGenerator:
   def settersDef(self,className,objList):
     retVal=[]
     for el in [el for el in objList if not el[2]]:
-      retVal.append("void set%s(const %s& val);"%(el.type[0].upper()+el.type[1:],typeConverter(el.field)));
+      retVal.append("void set%s(const %s& val);"%(el.type[0].upper()+el.type[1:],typeConverter(el.name)));
     return retVal
 
   def settersBody(self,className,objList):
     retVal=[]
     for el in [el for el in objList if not el[2]]:
-      retVal.append("void %s::set%s(const %s& val)"%(className,el.type[0].upper()+el.type[1:],typeConverter(el.field)));
+      retVal.append("void %s::set%s(const %s& val)"%(className,el.type[0].upper()+el.type[1:],typeConverter(el.name)));
       retVal.append("{")
       retVal.append("  this->%s=val;"%(el.type))
       pKeyList=[el.type for el in objList if el[2]]
@@ -133,13 +148,13 @@ class CppGenerator:
   def gettersDef(self,className,objList):
     retVal=[]
     for el in [el for el in objList]:
-      retVal.append("%s get%s() const;"%(typeConverter(el.field),el.type[0].upper()+el.type[1:]));
+      retVal.append("%s get%s() const;"%(typeConverter(el.name),el.type[0].upper()+el.type[1:]));
     return retVal
 
   def gettersBody(self,className,objList):
     retVal=[]
     for el in [el for el in objList]:
-      retVal.append("%s %s::get%s() const"%(typeConverter(el.field),className,el.type[0].upper()+el.type[1:]));
+      retVal.append("%s %s::get%s() const"%(typeConverter(el.name),className,el.type[0].upper()+el.type[1:]));
       retVal.append("{");
       retVal.append("  return(this->%s);"%(el.type))
       retVal.append("}");
@@ -147,13 +162,13 @@ class CppGenerator:
     return retVal
 
   def attribDef(self,objList):
-    return ['%s%s %s;'%('const ' if e[2] else '',typeConverter(e.field),e.type) for e in objList]
+    return ['%s%s %s;'%('const ' if e[2] else '',typeConverter(e.name),e.type) for e in objList]
 
   def ctorBody(self,className,objList):
     retVal=list()
-    argList=["const %s& %s"%(typeConverter(el.field),el.type) for el in [e for e in objList if e[2]]]
+    argList=["const %s& %s"%(typeConverter(el.name),el.type) for el in [e for e in objList if e[2]]]
     initList=["%s(%s)"%(e.type,e[0] if e[2] else '') for e in objList]
-    fList=["%s %s%s"%(e.type,e.field,' NOT NULL' if e[2] else '') for e in objList]
+    fList=["%s %s%s"%(e.type,e.name,' NOT NULL' if e[2] else '') for e in objList]
     pList=[e[0] for e in objList if e[2]]
     createTableSql="CREATE TABLE %s (%s%s);"%(className,','.join(fList),',PRIMARY KEY(%s)'%(','.join(pList)) if len(pList) else '')
     insertSql='INSERT INTO %s (%s) VALUES (%s);'%(className,','.join([e.type for e in objList]),'" + ss.str().substr(0,ss.str().length()-1) + "')

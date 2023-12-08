@@ -34,7 +34,7 @@ class Odb:
       self.objMap[self.recName]=list()
 
   def handleKvp(self,G):
-    Element=namedtuple('Element',['type','field','isKey'])
+    Element=namedtuple('Element',['type','name','isKey'])
     if self.recName and (not re.match(' *end;.*',G[0])):
       isPrimaryKey=(re.match(r'.*as key;',G[0]) != None)
       dType=G[1]
