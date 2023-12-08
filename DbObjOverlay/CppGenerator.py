@@ -24,7 +24,6 @@ def typeConverter(dbType):
 
 class CppGenerator:
   def __init__(self, moduleName, objList):
-    print("objList: %s"%(objList))
     logging.debug("moduleName %s; objList %s"%(moduleName,str(objList)))
     self.moduleName=moduleName
     self.objList=objList
@@ -115,7 +114,7 @@ class CppGenerator:
     retVal.append('{')
     for e in mutableAttribList:
       dType=typeConverter(e.name)
-      camelCaseType="%s%s"%(dType.type.upper(),dType[1:])
+      camelCaseType="%s%s"%(camelCase([dType]))
       typeConvertFx='DbConnector::convertTo%s(%s)'%(camelCaseType,'kvp.at("%s")'%(e.type)) if dType != 'std::string' else 'kvp.at("%s")'%e.type
       retVal.append('  this->%s=%s;'%(e.type,typeConvertFx))
     retVal.append('}')
@@ -125,13 +124,13 @@ class CppGenerator:
   def settersDef(self,className,objList):
     retVal=[]
     for el in [el for el in objList if not el[2]]:
-      retVal.append("void set%s(const %s& val);"%(el.type[0].upper()+el.type[1:],typeConverter(el.name)));
+      retVal.append("void set%s(const %s& val);"%(camelCase([el.type]),typeConverter(el.name)));
     return retVal
 
   def settersBody(self,className,objList):
     retVal=[]
     for el in [el for el in objList if not el[2]]:
-      retVal.append("void %s::set%s(const %s& val)"%(className,el.type[0].upper()+el.type[1:],typeConverter(el.name)));
+      retVal.append("void %s::set%s(const %s& val)"%(className,camelCase([el.type]),typeConverter(el.name)));
       retVal.append("{")
       retVal.append("  this->%s=val;"%(el.type))
       pKeyList=[el.type for el in objList if el[2]]
