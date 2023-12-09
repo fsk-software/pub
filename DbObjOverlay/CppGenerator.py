@@ -94,6 +94,19 @@ class CppGenerator:
     retVal.append('  char& operator[](int i){return val_[i];}')
 
     retVal.append("  type24(){memset(val_, '\\0', sizeof(val_));}")
+    retVal.append('type24(std::string val)')
+    retVal.append('{')
+    retVal.append('  // initialize buffer to EOF string end indicator')
+    retVal.append('  //  then, initialize with specified value while')
+    retVal.append('  //  not overflowing the buffer');
+    retVal.append('  // throw std::out_of_range exception if the specified')
+    retVal.append('  // exceeds the capacity of the buffer length')
+    retVal.append("                         memset(val_, '\\0', sizeof(val_));")
+    retVal.append('                         const int len1=sizeof(val_)-1;')
+    retVal.append('                         const int len2=val.length();')
+    retVal.append('                         memcpy(val_,val.c_str(),std::min(len1,len2));')
+    retVal.append('                       }')
+
     retVal.append('} VarChar24;')
     retVal.append('friend std::ostream& operator<<(std::ostream &ss, const VarChar24& val) {')
     retVal.append('  for(int i=0; i<sizeof(val); ++i) ss << val[i];')
