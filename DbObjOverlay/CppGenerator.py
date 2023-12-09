@@ -40,11 +40,6 @@ class CppGenerator:
     else:
       return ""
 
-  def setterSigniture(el):
-    retVal=[]
-    retVal.append('void set%s(%s %s)'%(el.name),'el.type','el.name')
-    return retVal
-
   def createHeader(self):
     with open(self.moduleName+".h",'w+') as fp:
       macroName=("%s_h"%(self.moduleName)).upper()
@@ -59,6 +54,26 @@ class CppGenerator:
         fp.write("\n".join(L)+"\n")
       fp.write("#endif\n");
 
+  def createBody(self):
+    with open(self.moduleName+".cpp",'w+') as fp:
+      fp.write('#include "%s.h"\n'%(self.moduleName))
+      fp.write('#include <sstream>\n')
+      fp.write('#include "DbConnector.h"\n')
+      for k,v in self.objList.items():
+        fp.write('\n'.join(self.ctorBody(k,v)))
+        fp.write('\n\n')
+        fp.write('\n'.join(self.settersBody(k,v)))
+#       fp.write('\n'.join(self.gettersBody(k,v)))
+      fp.write("\n")
+
+      for className,objList in self.objList.items():
+        L=self.populateFromSqlBody(className, objList)
+        fp.write('\n'.join(L))
+        fp.write('\n')
+
+  #--================================================================================
+  #-- Header Components
+  #--================================================================================
   def classDef(self,className,objList):
     retVal=list()
     retVal.append("")
@@ -81,6 +96,10 @@ class CppGenerator:
     for el in self.attribDef(objList):
       retVal.append("    %s"%(el))
     retVal.append("};");
+    return retVal
+
+  def genVarCharType(self, className, obj):
+    retVal=[]
     return retVal
 
   def genVarLenTypes(self, className, objList):
@@ -123,25 +142,9 @@ class CppGenerator:
     retVal.append("%s(%s);"%(className,','.join(argList)))
     return retVal
 
-  def populateFromSqlDef(self, className, objList):
+  def setterSigniture(el):
     retVal=[]
-    retVal.append('//@todo; move to private?')
-    retVal.append('void populateFromSql(const DbConnector::KvpType& kvp);')
-    return retVal
-
-  def populateFromSqlBody(self, className, objList):
-    retVal=[]
-    retVal.append('//populateFromSqlBody')
-    mutableAttribList=[el for el in objList if not el[2]]
-    retVal.append('void %s::populateFromSql(const DbConnector::KvpType& kvp)'%(className))
-    retVal.append('{')
-    for e in mutableAttribList:
-      dType=typeConverter(e.name)
-      camelCaseType="%s%s"%(camelCase([dType]))
-      typeConvertFx='DbConnector::convertTo%s(%s)'%(camelCaseType,'kvp.at("%s")'%(e.type)) if dType != 'std::string' else 'kvp.at("%s")'%e.type
-      retVal.append('  this->%s=%s;'%(e.type,typeConvertFx))
-    retVal.append('}')
-    retVal.append('')
+    retVal.append('void set%s(%s %s)'%(el.name),'el.type','el.name')
     return retVal
 
   def settersDef(self,className,objList):
@@ -150,42 +153,25 @@ class CppGenerator:
       retVal.append("void set%s(const %s& val);"%(camelCase([el.type]),typeConverter(el.name)));
     return retVal
 
-  def settersBody(self,className,objList):
-    retVal=[]
-    for el in [el for el in objList if not el[2]]:
-      retVal.append("void %s::set%s(const %s& val)"%(className,camelCase([el.type]),typeConverter(el.name)));
-      retVal.append("{")
-      retVal.append("  this->%s=val;"%(el.type))
-      pKeyList=[el.type for el in objList if el[2]]
-      retVal.append("  std::ostringstream pKeyVal;");
-      retVal.append('  pKeyVal<<this->val01;')
-      retVal.append("  std::ostringstream valSS;");
-      retVal.append("  valSS << val;")
-      updateSql='UPDATE %s SET %s=\'"+valSS.str()+"\' WHERE (%s="+pKeyVal.str()+");'%(className,el.type,pKeyList.type)
-      retVal.append('  DbConnector::instance()->execute("%s");'%(updateSql))
-      retVal.append("}")
-      retVal.append("")
-    return retVal
-
   def gettersDef(self,className,objList):
     retVal=[]
     for el in [el for el in objList]:
       retVal.append("%s get%s() const;"%(typeConverter(el.name),el.type[0].upper()+el.type[1:]));
     return retVal
 
-  def gettersBody(self,className,objList):
+  def populateFromSqlDef(self, className, objList):
     retVal=[]
-    for el in [el for el in objList]:
-      retVal.append("%s %s::get%s() const"%(typeConverter(el.name),className,el.type[0].upper()+el.type[1:]));
-      retVal.append("{");
-      retVal.append("  return(this->%s);"%(el.type))
-      retVal.append("}");
-      retVal.append('')
+    retVal.append('//@todo; move to private?')
+    retVal.append('void populateFromSql(const DbConnector::KvpType& kvp);')
     return retVal
 
   def attribDef(self,objList):
     return ['%s%s %s;'%('const ' if e[2] else '',typeConverter(e.name),e.type) for e in objList]
 
+
+  #--================================================================================
+  #-- Body Components
+  #--================================================================================
   def ctorBody(self,className,objList):
     retVal=list()
     argList=["const %s& %s"%(typeConverter(el.name),el.type) for el in [e for e in objList if e[2]]]
@@ -232,20 +218,44 @@ class CppGenerator:
     retVal.append("}")
     return retVal
 
-  def createBody(self):
-    with open(self.moduleName+".cpp",'w+') as fp:
-      fp.write('#include "%s.h"\n'%(self.moduleName))
-      fp.write('#include <sstream>\n')
-      fp.write('#include "DbConnector.h"\n')
-      for k,v in self.objList.items():
-        fp.write('\n'.join(self.ctorBody(k,v)))
-        fp.write('\n\n')
-        fp.write('\n'.join(self.settersBody(k,v)))
-#       fp.write('\n'.join(self.gettersBody(k,v)))
-      fp.write("\n")
+  def settersBody(self,className,objList):
+    retVal=[]
+    for el in [el for el in objList if not el[2]]:
+      retVal.append("void %s::set%s(const %s& val)"%(className,camelCase([el.type]),typeConverter(el.name)));
+      retVal.append("{")
+      retVal.append("  this->%s=val;"%(el.type))
+      pKeyList=[el.type for el in objList if el[2]]
+      retVal.append("  std::ostringstream pKeyVal;");
+      retVal.append('  pKeyVal<<this->val01;')
+      retVal.append("  std::ostringstream valSS;");
+      retVal.append("  valSS << val;")
+      updateSql='UPDATE %s SET %s=\'"+valSS.str()+"\' WHERE (%s="+pKeyVal.str()+");'%(className,el.type,pKeyList.type)
+      retVal.append('  DbConnector::instance()->execute("%s");'%(updateSql))
+      retVal.append("}")
+      retVal.append("")
+    return retVal
 
-      for className,objList in self.objList.items():
-        L=self.populateFromSqlBody(className, objList)
-        fp.write('\n'.join(L))
-        fp.write('\n')
+  def gettersBody(self,className,objList):
+    retVal=[]
+    for el in [el for el in objList]:
+      retVal.append("%s %s::get%s() const"%(typeConverter(el.name),className,el.type[0].upper()+el.type[1:]));
+      retVal.append("{");
+      retVal.append("  return(this->%s);"%(el.type))
+      retVal.append("}");
+      retVal.append('')
+    return retVal
 
+  def populateFromSqlBody(self, className, objList):
+    retVal=[]
+    retVal.append('//populateFromSqlBody')
+    mutableAttribList=[el for el in objList if not el[2]]
+    retVal.append('void %s::populateFromSql(const DbConnector::KvpType& kvp)'%(className))
+    retVal.append('{')
+    for e in mutableAttribList:
+      dType=typeConverter(e.name)
+      camelCaseType="%s%s"%(camelCase([dType]))
+      typeConvertFx='DbConnector::convertTo%s(%s)'%(camelCaseType,'kvp.at("%s")'%(e.type)) if dType != 'std::string' else 'kvp.at("%s")'%e.type
+      retVal.append('  this->%s=%s;'%(e.type,typeConvertFx))
+    retVal.append('}')
+    retVal.append('')
+    return retVal
