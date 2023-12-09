@@ -100,12 +100,6 @@ class CppGenerator:
 
   def genVarCharType(self, className, obj):
     retVal=[]
-    return retVal
-
-  def genVarLenTypes(self, className, objList):
-    retVal=[]
-    #varElList=[el for el in objList if re.match(r'.*\(.*\).*',el.name)]
-    varElList=[el for el in objList if re.match(r'.*\(.*\).*',el.name)]
     retVal.append('typedef struct type24')
     retVal.append('{')
     retVal.append('  char val_[24];')
@@ -131,6 +125,14 @@ class CppGenerator:
     retVal.append('  for(int i=0; i<sizeof(val); ++i) ss << val[i];')
     retVal.append('  return (ss);')
     retVal.append('}')
+    return retVal
+
+  def genVarLenTypes(self, className, objList):
+    retVal=[]
+    #varElList=[el for el in objList if re.match(r'.*\(.*\).*',el.name)]
+    #varElList=[el for el in objList if re.match(r'.*\(.*\).*',el.name)]
+    for obj in [el for el in objList if re.match(r'.*\(.*\).*',el.name)]:
+      self.genVarCharType(className, obj)
 
     retVal.append('')
     retVal.append('')
