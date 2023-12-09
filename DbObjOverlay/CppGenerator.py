@@ -51,6 +51,8 @@ class CppGenerator:
       fp.write("#ifndef %s\n"%(macroName));
       fp.write("#define %s\n"%(macroName));
       fp.write("#include <string>\n")
+      fp.write("#include <cstring>\n")
+      fp.write('#include <iostream>\n')
       fp.write('#include "DbConnector.h"\n')
       for className,elList in self.objList.items():
         L=self.classDef(className,elList)
@@ -69,8 +71,8 @@ class CppGenerator:
       retVal.append("    %s"%(el))
     for el in self.settersDef(className,objList):
       retVal.append("    %s"%(el))
-    for el in self.gettersDef(className,objList):
-      retVal.append("    %s"%(el))
+#   for el in self.gettersDef(className,objList):
+#     retVal.append("    %s"%(el))
 
     for el in self.populateFromSqlDef(className,objList):
       retVal.append("    %s"%(el))
@@ -87,9 +89,17 @@ class CppGenerator:
     varElList=[el for el in objList if re.match(r'.*\(.*\).*',el.name)]
     retVal.append('typedef struct type24')
     retVal.append('{')
-    retVal.append('char x[24];')
-    retVal.append('const char& operator[](int i) const { return x[i];}')
+    retVal.append('  char val_[24];')
+    retVal.append('  const char& operator[](int i) const { return val_[i];}')
+    retVal.append('  char& operator[](int i){return val_[i];}')
+
+    retVal.append("  type24(){memset(val_, '\\0', sizeof(val_));}")
     retVal.append('} VarChar24;')
+    retVal.append('friend std::ostream& operator<<(std::ostream &ss, const VarChar24& val) {')
+    retVal.append('  for(int i=0; i<sizeof(val); ++i) ss << val[i];')
+    retVal.append('  return (ss);')
+    retVal.append('}')
+
     retVal.append('')
     retVal.append('')
     return retVal
@@ -218,7 +228,7 @@ class CppGenerator:
         fp.write('\n'.join(self.ctorBody(k,v)))
         fp.write('\n\n')
         fp.write('\n'.join(self.settersBody(k,v)))
-        fp.write('\n'.join(self.gettersBody(k,v)))
+#       fp.write('\n'.join(self.gettersBody(k,v)))
       fp.write("\n")
 
       for className,objList in self.objList.items():

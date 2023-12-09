@@ -68,11 +68,11 @@ for file in glob.glob('*.odb'):
     L.append('  }')
     pKeyList=[el for el in v if el[2]]
     el=pKeyList[0]
-    L.append('  const %s pKey(%s);'%(typeConverter(el.name),defaultValues(el.name)))
-    L.append('  %s obj(%s);'%(k,'pKey'))
+    L.append('//  const %s pKey(%s);'%(typeConverter(el.name),defaultValues(el.name)))
+    L.append('//  %s obj(%s);'%(k,'pKey'))
     elList=[el for el in v if not el[2]]
     for e in elList:
-      L.append("  const %s %s = %s;"%(typeConverter(e.name),e.type,'rando%s()'%(e.name.type.upper()+e.name[1:])))
+      L.append("//  const %s %s = %s;"%(typeConverter(e.name),e.type,'rando%s()'%(e.name.type.upper()+e.name[1:])))
       fName=e.type[0].upper()+e.type[1:]
       dType=e.name[0].upper()+e.name[1:]
       setterFxn='obj.set%s(%s);'%(fName,e.type)

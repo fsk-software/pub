@@ -1,8 +1,8 @@
 #--Simple, unlikely, single field tables with primary keys
 #-- of varying supported data types
-dbclass MyRecord001
-  int val01 as key;
-end;
+#dbclass MyRecord001
+#  int val01 as key;
+#end;
 #
 #dbclass MyRecord002
 #  float val01 as key;
@@ -15,10 +15,10 @@ end;
 #dbclass MyRecord005
 #  char val01 as key;
 #end;
-#dbclass MyRecord005
-#  char(24) val01 as key;
-#end;
-#
+dbclass MyRecord005
+  char(24) val01 as key;
+end;
+
 #dbclass MyRecord006
 #  char(255) val01 as key;
 #end;
