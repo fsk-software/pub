@@ -8,7 +8,7 @@ setup:
 	${SH} sudo apt-get install -y liblog4cxx-dev
 
 test:
-	${SH} cd tests; make
+	${SH} cd tests; make all
 
 
 clean:

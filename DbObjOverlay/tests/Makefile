@@ -5,6 +5,8 @@ INCLUDE+="-I../"
 all: Foo.cpp Foo
 	${SH} ./Foo
 
+junk: MyTestDb01.h
+
 Foo.cpp:
 	${SH} ./testGenerator > $@
 
