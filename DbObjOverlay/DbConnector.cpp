@@ -1,6 +1,8 @@
 #include "DbConnector.h"
+#include <cstring>
 #include <sstream>
 #include <map>
+#include "log4cxx/logger.h"
 
 DbConnector* DbConnector::instance()
 {
@@ -22,14 +24,15 @@ DbConnector::DbConnector():driver(get_driver_instance()),con(driver->connect("tc
 
 void DbConnector::execute(const std::string& command)
 {
-//std::cout << "" << __FILE__ << ":" << __LINE__ << " executing: '" << command << "'" << std::endl;
+  LOG4CXX_DEBUG(log4cxx::Logger::getLogger("main"),"executing: '" << command <<"'\n");
   sql::Statement *stmt = con->createStatement();
   const bool success = stmt->execute(command.c_str());
+  LOG4CXX_DEBUG(log4cxx::Logger::getLogger("main"),"success: " << success);
 }
 
 DbConnector::KvpList DbConnector::executeQuery(const std::string& command)
 {
-//std::cout << "" << __FILE__ << ":" << __LINE__ << " executing: '" << command << "'" << std::endl;
+std::cout << "" << __FILE__ << ":" << __LINE__ << " executing: '" << command << "'" << std::endl;
 
   KvpList retVal;
   sql::Statement *stmt = con->createStatement();

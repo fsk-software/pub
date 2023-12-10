@@ -98,16 +98,16 @@ class CppGenerator:
     retVal.append("};");
     return retVal
 
-  def genVarCharType(self, className, obj):
+  def genVarCharType(self, className, obj, size):
     retVal=[]
-    retVal.append('typedef struct type24')
+    retVal.append('typedef struct type%d'%(size))
     retVal.append('{')
-    retVal.append('  char val_[24];')
+    retVal.append('  char val_[%d];'%(size))
     retVal.append('  const char& operator[](int i) const { return val_[i];}')
     retVal.append('  char& operator[](int i){return val_[i];}')
 
-    retVal.append("  type24(){memset(val_, '\\0', sizeof(val_));}")
-    retVal.append('  type24(std::string val)')
+    retVal.append("  type%d(){memset(val_, '\\0', sizeof(val_));}"%(size))
+    retVal.append('  type%d(std::string val)'%(size))
     retVal.append('  {')
     retVal.append('    // initialize buffer to EOF string end indicator')
     retVal.append('    //  then, initialize with specified value while')
@@ -118,28 +118,32 @@ class CppGenerator:
     retVal.append('                           const int len1=sizeof(val_)-1;')
     retVal.append('                           const int len2=val.length();')
     retVal.append('                           memcpy(val_,val.c_str(),std::min(len1,len2));')
-    retVal.append('                         }')
+    retVal.append('   }')
 
-    retVal.append('} VarChar24;')
-    retVal.append('friend std::ostream& operator<<(std::ostream &ss, const VarChar24& val) {')
-    retVal.append('  for(int i=0; i<sizeof(val); ++i) ss << val[i];')
+    retVal.append('} VarChar%d;'%(size))
+    retVal.append('friend std::ostream& operator<<(std::ostream &ss, const VarChar%d& val) {'%(size))
+#   retVal.append('  for(int i=0; i<sizeof(val); ++i) ss << val[i];')
+    retVal.append('int i=0;')
+    retVal.append("while (i < sizeof(val) && val[i]!='\\0') ss << val[i++];")
+#   retVal.append("ss << '\\0';");
     retVal.append('  return (ss);')
     retVal.append('}')
     return retVal
 
   def genVarLenTypes(self, className, objList):
     retVal=[]
-    #varElList=[el for el in objList if re.match(r'.*\(.*\).*',el.name)]
-    #varElList=[el for el in objList if re.match(r'.*\(.*\).*',el.name)]
-    for obj in [el for el in objList if re.match(r'.*\(.*\).*',el.name)]:
-      for e in self.genVarCharType(className, obj):
-        retVal.append(e)
+    for obj in [el for el in objList if re.match(r'.*\(.*\).*',el.type)]:
+      m=re.match(r'.*\((\d+)\).*',obj.type)
+      if m:
+        size=m.group(1)
+        for e in self.genVarCharType(className, obj, int(size)):
+          retVal.append(e)
 
     return retVal
 
   def ctorDef(self,className,objList):
     retVal=list()
-    argList=["const %s& %s"%(typeConverter(el.name),el.type) for el in [e for e in objList if e[2]]]
+    argList=["const %s& %s"%(typeConverter(el.type),el.name) for el in [e for e in objList if e[2]]]
     retVal.append("%s(%s);"%(className,','.join(argList)))
     return retVal
 
@@ -150,7 +154,7 @@ class CppGenerator:
 
   def settersDef(self,className,objList):
     retVal=[]
-    for el in [el for el in objList if not el[2]]:
+    for el in [el for el in objList if not el.isKey]:
       retVal.append("void set%s(const %s& val);"%(camelCase([el.type]),typeConverter(el.name)));
     return retVal
 
@@ -167,7 +171,7 @@ class CppGenerator:
     return retVal
 
   def attribDef(self,objList):
-    return ['%s%s %s;'%('const ' if e[2] else '',typeConverter(e.name),e.type) for e in objList]
+    return ['%s%s %s;'%('const ' if e.isKey else '',typeConverter(e.type),e.name) for e in objList]
 
 
   #--================================================================================
@@ -175,14 +179,13 @@ class CppGenerator:
   #--================================================================================
   def ctorBody(self,className,objList):
     retVal=list()
-    argList=["const %s& %s"%(typeConverter(el.name),el.type) for el in [e for e in objList if e[2]]]
-    initList=["%s(%s)"%(e.type,e[0] if e[2] else '') for e in objList]
-    fList=["%s %s%s"%(e.type,e.name,' NOT NULL' if e[2] else '') for e in objList]
-    pList=[e[0] for e in objList if e[2]]
+    argList=["const %s& %s"%(typeConverter(el.type),el.name) for el in [e for e in objList if e.isKey]]
+    initList=["%s(%s)"%(e.name,e.name if e.isKey else '') for e in objList]
+    fList=["%s %s%s"%(e.name,e.type,' NOT NULL' if e.isKey else '') for e in objList]
+    pList=[e.name for e in objList if e.isKey]
     createTableSql="CREATE TABLE %s (%s%s);"%(className,','.join(fList),',PRIMARY KEY(%s)'%(','.join(pList)) if len(pList) else '')
-    insertSql='INSERT INTO %s (%s) VALUES (%s);'%(className,','.join([e.type for e in objList]),'" + ss.str().substr(0,ss.str().length()-1) + "')
-
-    ssList=['ss << "\'" << this->%s << "\',";'%(e.type) for e in objList]
+    insertSql='INSERT INTO %s (%s) VALUES (%s);'%(className,','.join([e.name for e in objList]),'" + ss.str().substr(0,ss.str().length()-1) + "')
+    ssList=['ss << "\'" << this->%s << "\',";'%(e.name) for e in objList]
     
     retVal.append("%s::%s(%s)%s"%(className,className,','.join(argList),':'+','.join(initList)))
     retVal.append("{")
@@ -192,6 +195,7 @@ class CppGenerator:
     retVal.append('  if (DbConnector::instance()->tableExists("%s"))'%(className));
     retVal.append('  {')
     retVal.append('    try {')
+    retVal.append("      // strip off trailing ',' from insert command")
     retVal.append('      DbConnector::instance()->execute("%s");'%(insertSql))
     retVal.append('    } catch(sql::SQLException e)')
     retVal.append('    {')
@@ -221,11 +225,11 @@ class CppGenerator:
 
   def settersBody(self,className,objList):
     retVal=[]
-    for el in [el for el in objList if not el[2]]:
+    for el in [el for el in objList if not el.isKey]:
       retVal.append("void %s::set%s(const %s& val)"%(className,camelCase([el.type]),typeConverter(el.name)));
       retVal.append("{")
       retVal.append("  this->%s=val;"%(el.type))
-      pKeyList=[el.type for el in objList if el[2]]
+      pKeyList=[el.type for el in objList if el.isKey]
       retVal.append("  std::ostringstream pKeyVal;");
       retVal.append('  pKeyVal<<this->val01;')
       retVal.append("  std::ostringstream valSS;");
@@ -249,7 +253,7 @@ class CppGenerator:
   def populateFromSqlBody(self, className, objList):
     retVal=[]
     retVal.append('//populateFromSqlBody')
-    mutableAttribList=[el for el in objList if not el[2]]
+    mutableAttribList=[el for el in objList if not el.isKey]
     retVal.append('void %s::populateFromSql(const DbConnector::KvpType& kvp)'%(className))
     retVal.append('{')
     for e in mutableAttribList:

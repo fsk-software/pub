@@ -27,18 +27,19 @@ def typeConverter(dbType):
 
 
 def defaultValues(dType):
-  pType=dType.split('(')[0] if re.match('.*\(.*\).*',dType) else dType
+  m=re.match('.*\((.*)\).*',dType)
+  pType=dType.replace('(%s)'%(m.group(1)),'()') if m else dType
   DefaultVals={
                 "int"     : "1",
                 "float"   : "1.2345",
                 "double"  : "2.4680",
                 "text"    : '"abc"',
-                "char"    : "'a'",
-                "char()"  : '"a"',
-                "varchar" : '"a"',
+                "char"    : "'x'",
+                "char()"  : '"someId"',
                 "bigint"  : "100",
               };
-  return DefaultVals[pType];
+  retVal=DefaultVals[pType];
+  return retVal
 
 for file in glob.glob('*.odb'):
   L=[]
@@ -68,9 +69,9 @@ for file in glob.glob('*.odb'):
     L.append('  }')
     pKeyList=[el for el in v if el[2]]
     el=pKeyList[0]
-    L.append('//  const %s pKey(%s);'%(typeConverter(el.name),defaultValues(el.name)))
-    L.append('//  %s obj(%s);'%(k,'pKey'))
-    elList=[el for el in v if not el[2]]
+    L.append('  const %s pKey(%s);'%(typeConverter(el.type),defaultValues(el.type)))
+    L.append('  %s obj(%s);'%(k,'pKey'))
+    elList=[el for el in v if not el.isKey]
     for e in elList:
       L.append("//  const %s %s = %s;"%(typeConverter(e.name),e.type,'rando%s()'%(e.name.type.upper()+e.name[1:])))
       fName=e.type[0].upper()+e.type[1:]

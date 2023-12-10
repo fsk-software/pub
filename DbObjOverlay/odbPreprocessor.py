@@ -40,7 +40,8 @@ class Odb:
       dType=G[1]
       field=G[2].strip(';').strip()
       logging.debug("%s has %s of %s"%(self.recName,field,dType))
-      self.objMap[self.recName].append(Element(field,dType,isPrimaryKey))
+      #self.objMap[self.recName].append(Element(field,dType,isPrimaryKey))
+      self.objMap[self.recName].append(Element(dType,field,isPrimaryKey))
 
   def handleRecordEnd(self,G):
     self.recName=None
@@ -48,6 +49,8 @@ class Odb:
 def processFile(fileName):
   logging.debug("processing fileName '%s'"%(fileName))
   objList=Odb().parseOdbFile(fileName)
+  for k,v in objList.items():
+    print(v)
   moduleName=args.input.replace(".odb","")
   fx='%sGenerator(moduleName,objList)'%(args.lang)
   logging.debug("executing %s"%(fx))
