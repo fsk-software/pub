@@ -16,13 +16,13 @@ dbclass MyRecord005
   char val01 as key;
 end;
 
-dbclass MyRecord005
-  char(1) val01 as key;
-end;
+#dbclass MyRecord005
+#  char(1) val01 as key;
+#end;
 
-dbclass MyRecord006
-  char(2) val01 as key;
-end;
+#dbclass MyRecord006
+#  char(2) val01 as key;
+#end;
 
 dbclass MyRecord007
   char(10) val01 as key;
