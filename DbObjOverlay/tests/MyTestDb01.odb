@@ -1,39 +1,61 @@
 #--Simple, unlikely, single field tables with primary keys
 #-- of varying supported data types
-dbclass MyRecord001
-  int val01 as key;
-end;
-
-dbclass MyRecord002
-  float val01 as key;
-end;
-
-dbclass MyRecord003
-  double val01 as key;
-end;
-
-dbclass MyRecord005
-  char val01 as key;
-end;
-
+#dbclass MyRecord001
+#  int val01 as key;
+#end;
+#
+#dbclass MyRecord002
+#  float val01 as key;
+#end;
+#
+#dbclass MyRecord003
+#  double val01 as key;
+#end;
+#
 #dbclass MyRecord005
-#  char(1) val01 as key;
+#  char val01 as key;
+#end;
+#
+##dbclass MyRecord005
+##  char(1) val01 as key;
+##end;
+#
+##dbclass MyRecord006
+##  char(2) val01 as key;
+##end;
+#
+#dbclass MyRecord007
+#  char(10) val01 as key;
+#end;
+#
+#dbclass MyRecord008
+#  char(20) val01 as key;
+#end;
+#
+#dbclass MyRecord009
+#  char(33) val01 as key;
+#end;
+#
+#dbclass MyRecord010
+#  char(10) val01 as key;
 #end;
 
-#dbclass MyRecord006
-#  char(2) val01 as key;
+#--Simple one-primary key, one non-primary key
+#dbclass MyRecord101
+#  int val01 as key;
+#  float val02;
+#  bigint val03;
+#  text val04;
+#  int val05;
+#  long val06;
+#  double val07;
 #end;
 
-dbclass MyRecord007
-  char(10) val01 as key;
+dbclass MyRecord102
+  int val01 as key;
+  text val02;
 end;
 
-dbclass MyRecord008
-  char(20) val01 as key;
-end;
-
-dbclass MyRecord009
-  char(33) val01 as key;
-end;
-
-
+# char valXX;
+# date valXX;
+# datetime valXX;

@@ -28,6 +28,8 @@ class DbConnector
     static float convertToFloat(const std::string& val);
     static double convertToDouble(const std::string& val);
     static long convertToLong(const std::string& val);
+    static std::string convertToString(const std::string& val);
+//  static char convertToChar(const std::string& val);
   private:
     DbConnector();
     sql::Driver *driver;

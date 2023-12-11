@@ -24,7 +24,8 @@ DbConnector::DbConnector():driver(get_driver_instance()),con(driver->connect("tc
 
 void DbConnector::execute(const std::string& command)
 {
-  LOG4CXX_DEBUG(log4cxx::Logger::getLogger("main"),"executing: '" << command <<"'\n");
+std::cout << "sql command: '" << command << "'" << std::endl;
+  LOG4CXX_DEBUG(log4cxx::Logger::getLogger("main"),"executing: '" << command << "'");
   sql::Statement *stmt = con->createStatement();
   const bool success = stmt->execute(command.c_str());
   LOG4CXX_DEBUG(log4cxx::Logger::getLogger("main"),"success: " << success);
@@ -84,25 +85,30 @@ std::string DbConnector::convertToString(const int& val)
   return ss.str();
 }
 
-std::string convertToString(const float& val)
+std::string DbConnector::convertToString(const float& val)
 {
   std::ostringstream ss;
   ss << val;
   return ss.str();
 }
 
-std::string convertToString(const double& val)
+std::string DbConnector::convertToString(const double& val)
 {
   std::ostringstream ss;
   ss << val;
   return ss.str();
 }
 
-std::string convertToString(const long& val)
+std::string DbConnector::convertToString(const long& val)
 {
   std::ostringstream ss;
   ss << val;
   return ss.str();
+}
+
+std::string DbConnector::convertToString(const std::string& val)
+{
+  return val;
 }
 
 
@@ -126,3 +132,7 @@ long DbConnector::convertToLong(const std::string& val)
   return std::stold(val);
 }
 
+//char DbConnector::convertToChar(const std::string& val)
+//{
+//  return val[0];
+//}
