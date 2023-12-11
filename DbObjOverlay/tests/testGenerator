@@ -1,11 +1,10 @@
 #!/usr/bin/python3
-import glob
+import argparse
+import logging
 import sys
-import re
-
 sys.path.append('../')
-
 import odbPreprocessor
+import re
 
 def typeConverter(dbType):
   #@todo: duplicated from CppGenerator
@@ -18,6 +17,7 @@ def typeConverter(dbType):
                'char'     :  'char',
                'char()'   :  'std::string',
                'int'      :  'int',
+               'long'      : 'long',
                'double'   :  'double',
                'date'     :  'std::string',
                'datetime' :  'std::string',
@@ -39,66 +39,155 @@ def defaultValues(dType):
                 "char"    : "'x'",
                 "char()"  : '"someId"',
                 "bigint"  : "100",
+                "long"    : "9999",
               };
   retVal=DefaultVals[pType];
   return retVal
 
-for file in glob.glob('*.odb'):
-  L=[]
+class TestObj:
+  def __init__(self,id,name,objList):
+    self.id_=id
+    self.name_=name
+    self.tests_=[]
+    self.objList_=objList
+    self.testNames_=[]
+    self.tests_+=self.simpleTest()
+
+  def objCtor(self,objName):
+    L=[]
+    pKeys=[el for el in self.objList_ if el.isKey]
+    L.append("//pKeys: %s"%(str(pKeys)))
+    pKey=pKeys[0]
+    i=0
+    pKeyList=[]
+    for pKey in pKeys:
+      dType=typeConverter(pKey.type)
+      keyVarName='pKey%d'%(i)
+      pKeyList.append(keyVarName)
+      L.append("%s %s;"%(dType,'%s=%s'%(keyVarName,defaultValues(pKey.type))))
+      i+=1
+    L.append("%s %s(%s);"%(self.name_,objName,','.join(pKeyList)))
+    return L
+
+  def objSetter(self, el,val):
+    fxn="set"+el.name[0].upper()+el.name[1:]
+    return ['obj.%s(%s);'%(fxn,val)]
+
+  def objGetter(self, el):
+    fxn="get"+el.name[0].upper()+el.name[1:]
+    return ['obj.%s()'%(fxn)]
+
+  def simpleTest(self):
+    L=[]
+    fxnName='test%05d'%(self.id_)
+    fxnName='test%sSimpleTest'%(self.name_)
+    self.testNames_.append("")
+    L.append('void %s()'%(fxnName))
+    L.append('{')
+    L.append('  dropTable("%s");'%(self.name_))
+    for e in self.objCtor('obj'):
+      L.append('  %s'%(e))
+    mutableFields=[el for el in self.objList_ if not el.isKey]
+    L.append("  // mutable: %s"%(str(mutableFields)))
+    for e in mutableFields:
+      L.append('  {')
+      L.append('    const %s %s=%s;'%(typeConverter(e.type), 'newVal', defaultValues(e.type)))
+      for el in self.objSetter(e,'newVal'):
+        L.append("    %s"%(el))
+      for el in self.objGetter(e):
+        L.append("    assert(%s==%s);"%('newVal',el))
+      L.append("    {")
+      L.append("      %s obj2(pKey0);"%(self.name_))
+      obj1Getter=''.join(self.objGetter(e))
+      obj2Getter=obj1Getter.replace('obj','obj2')
+      L.append("      assert(%s==%s);"%(obj1Getter,obj2Getter))
+      L.append("    }")
+      L.append('  }')
+    L.append('}')
+    L.append('')
+    return L
+
+class TestModule:
+  def __init__(self,name,objList):
+    self.name_=name
+    self.tests_=[]
+    logging.debug("test object: %s %s"%(name, objList))
+    i=0
+    tc=TestObj(i,name,objList)
+    self.tests_+=tc.tests_
+
+def processFiles(fileList):
+  retVal=[]
   obj=odbPreprocessor.Odb()
-  dbEls=obj.parseOdbFile(file)
-  moduleName=file.replace('.odb','')
-  L.append('#include "%s.h"'%(moduleName))
+  for file in fileList:
+    logging.debug('processing %s'%(file))
+    dbEls=obj.parseOdbFile(file)
+    logging.debug('dbEls %s'%(dbEls))
+    for k,v in dbEls.items():
+      logging.debug('processing %s; %s'%(k,v))
+      tObj=TestModule(k,v)
+      retVal+=tObj.tests_
+  return retVal
+
+def helperFunctions():
+  retVal=[]
+  L.append("void dropTable(const std::string& tableName)")
+  L.append("{");
+  L.append("  try");
+  L.append("  {");
+  L.append('    DbConnector::instance()->execute("DROP TABLE " + tableName + ";");')
+  L.append("  }");
+  L.append("  catch(sql::SQLException e)");
+  L.append("  {");
+  L.append("  }");
+  L.append("}");
+  return retVal
+
+#--main--
+if __name__ == "__main__":
+  parser=argparse.ArgumentParser(description='ODB precompiler')
+  parser.add_argument('--verbose',action='store_true', default=False)
+  parser.add_argument('--input',action='append',required=True, default=[])
+  parser.add_argument('--outfile',action='store',required=True)
+  args,unk = parser.parse_known_args()
+
+  if args.verbose:
+    logLevel=logging.DEBUG
+  else:
+    logLevel=logging.INFO
+  logging.basicConfig(format='%(asctime)s [%(filename)s:%(lineno)s] %(levelname)s: %(message)s', datefmt='%Y-%m-%d %I:%M:%S %p',level=logLevel)
+
+  tL=processFiles(args.input)
+
+  L=[]
   L.append('#include "log4cxx/logger.h"')
   L.append('#include "log4cxx/basicconfigurator.h"')
   L.append('#include <chrono>')
-
-  L.append("float randoFloat() { return float(rand()); }")
-  L.append("double randoDouble() { return double(rand()); }")
-  L.append("int randoInt() { return int(rand()); }")
-  L.append('std::string randoText() { return(std::string("some string")); }')
-  L.append("int randoBigint() { return int(rand()); }")
-
-  testNum=0
-  for k,v in dbEls.items():
-    L.append('void test%02d()'%(testNum))
-    L.append('{')
-    L.append('  try')
-    L.append('  {')
-    L.append('        DbConnector::instance()->execute("DROP TABLE %s;");'%(k))
-    L.append('  } catch(sql::SQLException e)')
-    L.append('  {')
-    L.append('  }')
-    pKeyList=[el for el in v if el[2]]
-    el=pKeyList[0]
-    L.append('  const %s pKey(%s);'%(typeConverter(el.type),defaultValues(el.type)))
-    L.append('  %s obj(%s);'%(k,'pKey'))
-    elList=[el for el in v if not el.isKey]
-    for e in elList:
-      L.append("  const %s %s=%s;"%(typeConverter(e.type),e.name,'rando%s()'%(camelCase(e.type))))
-      fName=camelCase(e.name)
-      setterFxn='obj.set%s(%s);'%(fName,e.name)
-      L.append("  %s"%(setterFxn))
-      getterFxn='obj.get%s()'%(fName)
-      L.append('  %s obj2(%s);'%(k,'pKey'))
-      L.append("  assert(%s==%s);"%(e.name,getterFxn))
-    L.append('}\n')
-    testNum+=1
-
-  L.append("int main(int argc, char* argv[])")
-  L.append("{")
+  for e in args.input:
+    L.append('#include "%s.h"'%(e.replace('.odb','')))
+  for e in helperFunctions():
+    L.append("%s"%(e))
+  L.append('')
+  L+=tL
+  L.append('int main(int argc, char* argv[])')
+  L.append('{')
   L.append('  using namespace log4cxx;')
   L.append('  using namespace log4cxx::helpers;')
   L.append('  BasicConfigurator::configure();')
   L.append('  LoggerPtr logger(Logger::getLogger("main"));')
   L.append('  const auto startTs{std::chrono::steady_clock::now()};')
-
-  for i in range(0,testNum):
-    L.append("  test%02d();"%(i))
-
+  testFxns=[el for el in tL if re.match('.*void test.*()',el)]
+  print("testFxns:",testFxns)
+  for e in testFxns:
+    call=e.split(' ')[1]
+    L.append('  %s;'%(call))
   L.append('  const auto stopTs{std::chrono::steady_clock::now()};')
   L.append('  const std::chrono::duration<double> elapsedSecs{stopTs - startTs};')
   L.append('  LOG4CXX_DEBUG(logger, "main process terminating; elapsed time(" << elapsedSecs.count() << ")");')
-  L.append("}")
 
-print('\n'.join(L)+'\n')
+
+  L.append('  return(EXIT_SUCCESS);')
+  L.append('}')
+  L.append('')
+  with open(args.outfile,'w') as fp:
+    fp.write('\n'.join(L))

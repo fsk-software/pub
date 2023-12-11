@@ -5,13 +5,11 @@ INCLUDE+="-I../"
 all: Foo.cpp Foo
 	${SH} ./Foo
 
-junk: MyTestDb01.h Foo.cpp
+Foo.cpp: MyTestDb01.odb
+	${SH} ./testGenerator2 --verbose --input $^ --outfile $@ 
 
-Foo.cpp:
-	${SH} ./testGenerator > $@
-
-Foo: MyTestDb01.h MyTestDb01.cpp ../DbConnector.cpp
-	${CC} $@.cpp $^ -o $@ ${INCLUDE} ${LIBS}
+Foo: Foo.cpp MyTestDb01.h MyTestDb01.cpp ../DbConnector.cpp
+	${CC} $^ -o $@ ${INCLUDE} ${LIBS}
 
 %.h: %.odb
 	${SH} ../odbPreprocessor.py --verbose --input $< --lang Cpp --outfile $@
