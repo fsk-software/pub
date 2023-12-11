@@ -6,7 +6,7 @@ all: Foo.cpp Foo
 	${SH} ./Foo
 
 Foo.cpp: MyTestDb01.odb
-	${SH} ./testGenerator2 --verbose --input $^ --outfile $@ 
+	${SH} ./testGenerator --verbose --input $^ --outfile $@ 
 
 Foo: Foo.cpp MyTestDb01.h MyTestDb01.cpp ../DbConnector.cpp
 	${CC} $^ -o $@ ${INCLUDE} ${LIBS}
