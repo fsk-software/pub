@@ -22,8 +22,8 @@ def typeConverter(dbType):
                }
   return VarLenMapper[dbType] if m else TypeMapper[dbType]
 
-def userDefinedTypeName(el):
-  m=re.match(r'.*\((.*)\).*',el.type)
+def userDefinedTypeName(dbType):
+  m=re.match(r'.*\((.*)\).*',dbType)
   dataSize=int(m.group(1))
   return 'VarChar%d'%(dataSize);
 
@@ -106,6 +106,7 @@ class CppGenerator:
     retVal.append('  char val_[%d];'%(size))
     retVal.append('  const char& operator[](int i) const { return val_[i];}')
     retVal.append('  char& operator[](int i){return val_[i];}')
+    retVal.append('  bool operator==(const type%s& val) const { return true; }'%(size))
 
     retVal.append("  type%d(){memset(val_, '\\0', sizeof(val_));}"%(size))
     retVal.append('  type%d(std::string val)'%(size))
@@ -127,8 +128,8 @@ class CppGenerator:
     retVal.append('    memcpy(val_,val.c_str(),std::min(len1,len2));')
     retVal.append('   }')
 
-    retVal.append('} %s;'%(userDefinedTypeName(obj)))
-    retVal.append('friend std::ostream& operator<<(std::ostream &ss, const %s& val) {'%(userDefinedTypeName(obj)))
+    retVal.append('} %s;'%(userDefinedTypeName(obj.type)))
+    retVal.append('friend std::ostream& operator<<(std::ostream &ss, const %s& val) {'%(userDefinedTypeName(obj.type)))
     retVal.append('  //return up up to the first instance of EOL, buffer is initialized to EOLs')
     retVal.append('  int i=0;')
     retVal.append("  while (i < sizeof(val) && val[i]!='\\0') ss << val[i++];")
@@ -251,7 +252,7 @@ class CppGenerator:
     retVal=[]
     for el in [el for el in objList]:
       isPrimitiveType=(re.match(r'.*\((.*)\).*',el.type)==None)
-      typeName=typeConverter(el.type) if isPrimitiveType else "%s::%s"%(className,userDefinedTypeName(el))
+      typeName=typeConverter(el.type) if isPrimitiveType else "%s::%s"%(className,userDefinedTypeName(el.type))
       retVal.append("%s %s::get%s() const"%(typeName,className,el.name[0].upper()+el.name[1:]));
       retVal.append("{");
       retVal.append("  return(this->%s);"%(el.name))
@@ -267,7 +268,18 @@ class CppGenerator:
     for e in mutableAttribList:
       dType=typeConverter(e.type)
       baseTypeName=dType.split(":")[-1]
-      convertFxn='DbConnector::convertTo%s(%s)'%(self.camelCase(baseTypeName),'kvp.at("%s")'%(e.name))
+      userType=not (dType in ['int','float','text','char','long','long int','double','date','datetime'])
+      if userType:
+        convertFxn='kvp.at("%s");'%(e.name)
+      else:
+        convertFxn='DbConnector::convertTo%s(%s)'%(self.camelCase(baseTypeName),'kvp.at("%s")'%(e.name))
+      logging.debug("userType: %s"%(userType))
+      logging.debug("converter function: %s"%(convertFxn))
       retVal.append('  this->%s=%s;'%(e.name,convertFxn))
     retVal.append('}')
     return retVal
+
+#def userDefinedTypeName(el):
+#  m=re.match(r'.*\((.*)\).*',el.type)
+#  dataSize=int(m.group(1))
+#  return 'VarChar%d'%(dataSize);

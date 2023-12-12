@@ -5,8 +5,9 @@ import sys
 sys.path.append('../')
 import odbPreprocessor
 import re
+import CppGenerator
 
-def typeConverter(dbType):
+def typeConverter(className,dbType):
   #@todo: duplicated from CppGenerator
   m=re.match(r'.*\((.*)\).*',dbType)
   vType=dbType.replace("(%s)"%(m.group(1)),"()") if m else dbType
@@ -15,14 +16,18 @@ def typeConverter(dbType):
                'bigint'   :  'long',
                'text'     :  'std::string',
                'char'     :  'char',
-               'char()'   :  'std::string',
+#              'char()'   :  'std::string',
                'int'      :  'int',
                'long'      : 'long',
                'double'   :  'double',
                'date'     :  'std::string',
                'datetime' :  'std::string',
              }
-  return TypeMapper[vType] if m else TypeMapper[dbType]
+  try:
+    retVal=TypeMapper[vType] if m else TypeMapper[dbType]
+  except KeyError:
+    retVal=className+"::"+CppGenerator.userDefinedTypeName(dbType)
+  return retVal
 
 def camelCase(el):
     retVal=[el[0].upper()+el[1:]]
@@ -37,7 +42,7 @@ def defaultValues(dType):
                 "double"  : "2.4680",
                 "text"    : '"abc"',
                 "char"    : "'x'",
-                "char()"  : '"someId"',
+                "char()"  : '"abc"',
                 "bigint"  : "100",
                 "long"    : "9999",
               };
@@ -61,10 +66,13 @@ class TestObj:
     i=0
     pKeyList=[]
     for pKey in pKeys:
-      dType=typeConverter(pKey.type)
+      dType=typeConverter(self.name_, pKey.type)
       keyVarName='pKey%d'%(i)
       pKeyList.append(keyVarName)
-      L.append("%s %s;"%(dType,'%s=%s'%(keyVarName,defaultValues(pKey.type))))
+      if pKey.type in ['int','float','double','text','char','bigint','long']:
+        L.append("%s %s;"%(dType,'%s=%s'%(keyVarName,defaultValues(pKey.type))))
+      else:
+        L.append("%s %s;"%(dType,'%s(%s)'%(keyVarName,defaultValues(pKey.type))))
       i+=1
     L.append("%s %s(%s);"%(self.name_,objName,','.join(pKeyList)))
     return L
@@ -91,11 +99,17 @@ class TestObj:
     L.append("  // mutable: %s"%(str(mutableFields)))
     for e in mutableFields:
       L.append('  {')
-      L.append('    const %s %s=%s;'%(typeConverter(e.type), 'newVal', defaultValues(e.type)))
-      for el in self.objSetter(e,'newVal'):
+      newVar='newVal'
+      if e.type in ['float','bigint','text','char','int','long','double','date','datetime']:
+        L.append('    const %s %s=%s;'%(typeConverter(self.name_, e.type), newVar, defaultValues(e.type)))
+      else:
+        L.append('    //e.type: %s'%(e.type))
+        typeName="%s::%s"%(self.name_,CppGenerator.userDefinedTypeName(e.type))
+        L.append('    const %s %s("");'%(typeName,newVar))
+      for el in self.objSetter(e,newVar):
         L.append("    %s"%(el))
       for el in self.objGetter(e):
-        L.append("    assert(%s==%s);"%('newVal',el))
+        L.append("    assert(%s==%s);"%(newVar,el))
       L.append("    {")
       L.append("      %s obj2(pKey0);"%(self.name_))
       obj1Getter=''.join(self.objGetter(e))

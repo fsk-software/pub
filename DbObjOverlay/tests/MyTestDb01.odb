@@ -73,3 +73,8 @@ dbclass MyRecord201
   long val06;
   double val07;
 end;
+
+dbclass MyRecord202
+  int val01 as key;
+  char(10) val02;
+end;
