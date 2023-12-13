@@ -2,7 +2,7 @@ CC=g++
 LIBS += -L/usr/lib -lmysqlcppconn -llog4cxx
 INCLUDE+="-I../"
 
-all: Foo.cpp Foo 
+all: Foo.cpp Foo
 	${SH} ./Foo
 
 Foo.cpp: MyTestDb01.odb

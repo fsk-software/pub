@@ -145,7 +145,6 @@ class CppGenerator:
         size=m.group(1)
         for e in self.genVarCharType(className, obj, int(size)):
           retVal.append(e)
-
     return retVal
 
   def ctorDef(self,className,objList):

@@ -1,80 +1,85 @@
-#--Simple, unlikely, single field tables with primary keys
-#-- of varying supported data types
-dbclass MyRecord001
-  int val01 as key;
-end;
-
-dbclass MyRecord002
-  float val01 as key;
-end;
-
-dbclass MyRecord003
-  double val01 as key;
-end;
-
-dbclass MyRecord005
-  char val01 as key;
-end;
-
-dbclass MyRecord007
-  char(10) val01 as key;
-end;
-
-dbclass MyRecord008
-  char(20) val01 as key;
-end;
-
-dbclass MyRecord009
-  char(33) val01 as key;
-end;
-
-dbclass MyRecord010
-  char(10) val01 as key;
-end;
-
-#--Simple one-primary key, one non-primary key
-dbclass MyRecord101
-  int val01 as key;
-  float val02;
-end;
-
-dbclass MyRecord102
-  int val01 as key;
-  bigint val02;
-end;
-
-dbclass MyRecord103
-  int val01 as key;
-  text val02;
-end;
-
-dbclass MyRecord104
-  int val01 as key;
-  int val02;
-end;
-
-dbclass MyRecord105
-  int val01 as key;
-  long val02;
-end;
-
-dbclass MyRecord106
-  int val01 as key;
-  double val02;
-end;
-
-#--Single table with variety of supported data types
-dbclass MyRecord201
-  int val01 as key;
-  float val02;
-  bigint val03;
-  text val04;
-  int val05;
-  long val06;
-  double val07;
-end;
-
-dbclass MyRecord202
+##--Simple, unlikely, single field tables with primary keys
+##-- of varying supported data types
+#dbclass MyRecord001
+#  int val01 as key;
+#end;
+#
+#dbclass MyRecord002
+#  float val01 as key;
+#end;
+#
+#dbclass MyRecord003
+#  double val01 as key;
+#end;
+#
+#dbclass MyRecord005
+#  char val01 as key;
+#end;
+#
+#dbclass MyRecord007
+#  char(10) val01 as key;
+#end;
+#
+#dbclass MyRecord008
+#  char(20) val01 as key;
+#end;
+#
+#dbclass MyRecord009
+#  char(33) val01 as key;
+#end;
+#
+#dbclass MyRecord010
+#  char(10) val01 as key;
+#end;
+#
+##--Simple one-primary key, one non-primary key
+#dbclass MyRecord101
+#  int val01 as key;
+#  float val02;
+#end;
+#
+#dbclass MyRecord102
+#  int val01 as key;
+#  bigint val02;
+#end;
+#
+#dbclass MyRecord103
+#  int val01 as key;
+#  text val02;
+#end;
+#
+#dbclass MyRecord104
+#  int val01 as key;
+#  int val02;
+#end;
+#
+#dbclass MyRecord105
+#  int val01 as key;
+#  long val02;
+#end;
+#
+#dbclass MyRecord106
+#  int val01 as key;
+#  double val02;
+#end;
+#
+##--Single table with variety of supported data types
+#dbclass MyRecord201
+#  int val01 as key;
+#  float val02;
+#  bigint val03;
+#  text val04;
+#  int val05;
+#  long val06;
+#  double val07;
+#end;
+#
+#dbclass MyRecord202
+#  int val01 as key;
+#  char(10) val02;
+#end;
+#
+dbclass MyRecord203
   int val01 as key;
   char(10) val02;
 end;

@@ -9,6 +9,7 @@ setup:
 
 test:
 	${SH} cd tests; make all
+#	${SH} cd tests; make MyTestDb01.h
 
 
 clean:
