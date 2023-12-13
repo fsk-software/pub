@@ -74,9 +74,26 @@ dbclass MyRecord201
   double val07;
 end;
 
---Duplicate uses of same datatype
-dbclass MyRecord203
+#--Duplicate uses of same datatype
+dbclass MyRecord201
   int val01 as key;
-  char(5) val02;
-  char(5) val03;
+  char(11) val02;
+  char(11) val03;
+end;
+
+#--Variety of user-defined data types
+dbclass MyRecord301
+  int val01 as key;
+  char(11) val02;
+  char(22) val03;
+  char(33) val04;
+  char(44) val05;
+  char(55) val06;
+  char(66) val07;
+  char(11) val12;
+  char(22) val13;
+  char(33) val14;
+  char(44) val15;
+  char(55) val16;
+  char(66) val17;
 end;
