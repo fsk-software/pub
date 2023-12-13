@@ -22,10 +22,58 @@ def typeConverter(dbType):
                }
   return VarLenMapper[dbType] if m else TypeMapper[dbType]
 
-def userDefinedTypeName(dbType):
-  m=re.match(r'.*\((.*)\).*',dbType)
-  dataSize=int(m.group(1))
-  return 'VarChar%d'%(dataSize);
+class UserTypeGenerator:
+  @staticmethod
+  def typeName(dbType):
+    retVal=None
+    m=re.match('.*\((.*)\).*',dbType)
+    if m:
+      retVal="VarChar%s"%(m.group(1))
+    return retVal
+
+  @staticmethod
+  def createType(dbType):
+    retVal=[]
+    m=re.match('.*\((.*)\).*',dbType)
+    if m:
+      size=m.group(1)
+      retVal.append("//dbType: %s"%(dbType))
+      retVal.append("//typeName: %s"%(UserTypeGenerator.typeName(dbType)))
+      retVal.append('   typedef struct type%s'%(size))
+      retVal.append('   {')
+      retVal.append('     char val_[%s];'%(size))
+      retVal.append('     const char& operator[](int i) const { return val_[i];}')
+      retVal.append('     char& operator[](int i){return val_[i];}')
+      retVal.append('     bool operator==(const type%s& val) const { return true; }'%(size))
+      retVal.append("     type%s(){memset(val_, '\\0', sizeof(val_));}"%(size))
+      retVal.append('     type%s(std::string val)'%(size))
+      retVal.append('     {')
+      retVal.append('       // initialize buffer to EOF string end indicator')
+      retVal.append('       //  then, initialize with specified value while')
+      retVal.append('       //  not overflowing the buffer')
+      retVal.append('       // throw std::out_of_range exception if the specified')
+      retVal.append('       // exceeds the capacity of the buffer length')
+      retVal.append("       memset(val_, '\\0', sizeof(val_));")
+      retVal.append('       const int len1=sizeof(val_)-1;')
+      retVal.append('       const int len2=val.length();')
+      retVal.append('       if (len2 > len1)')
+      retVal.append('       {')
+      retVal.append('         std::ostringstream errSs;')
+      retVal.append('         errSs << "exceeded buffer length " << len2 << " > " << len1;')
+      retVal.append('         throw std::out_of_range(errSs.str());')
+      retVal.append('       }')
+      retVal.append('       memcpy(val_,val.c_str(),std::min(len1,len2));')
+      retVal.append('     }')
+      retVal.append('   } VarChar%s;'%(size))
+      retVal.append('friend std::ostream& operator<<(std::ostream &ss, const VarChar%s& val) {'%(size))
+      retVal.append('  //return up up to the first instance of EOL, buffer is initialized to EOLs')
+      retVal.append('  int i=0;')
+      retVal.append("  while (i < sizeof(val) && val[i]!='\\0') ss << val[i++];")
+      retVal.append('  return (ss);')
+      retVal.append('}')
+
+
+    return retVal
 
 class CppGenerator:
   def __init__(self, moduleName, objList):
@@ -81,8 +129,12 @@ class CppGenerator:
     retVal.append("class %s"%(className))
     retVal.append("{");
     retVal.append("  public:");
-    for el in self.genVarLenTypes(className,objList):
-      retVal.append("    %s"%(el))
+      
+    #--make sure types are unique to avoid duplication in header
+    uTypeList=list(set([e.type for e in objList]))
+    for el in uTypeList:
+      for e in UserTypeGenerator.createType(el):
+        retVal.append("    %s"%(e))
     for el in self.ctorDef(className,objList):
       retVal.append("    %s"%(el))
     for el in self.settersDef(className,objList):
@@ -99,54 +151,7 @@ class CppGenerator:
     retVal.append("};");
     return retVal
 
-  def genVarCharType(self, className, obj, size):
-    retVal=[]
-    retVal.append('typedef struct type%d'%(size))
-    retVal.append('{')
-    retVal.append('  char val_[%d];'%(size))
-    retVal.append('  const char& operator[](int i) const { return val_[i];}')
-    retVal.append('  char& operator[](int i){return val_[i];}')
-    retVal.append('  bool operator==(const type%s& val) const { return true; }'%(size))
-
-    retVal.append("  type%d(){memset(val_, '\\0', sizeof(val_));}"%(size))
-    retVal.append('  type%d(std::string val)'%(size))
-    retVal.append('  {')
-    retVal.append('    // initialize buffer to EOF string end indicator')
-    retVal.append('    //  then, initialize with specified value while')
-    retVal.append('    //  not overflowing the buffer');
-    retVal.append('    // throw std::out_of_range exception if the specified')
-    retVal.append('    // exceeds the capacity of the buffer length')
-    retVal.append("    memset(val_, '\\0', sizeof(val_));")
-    retVal.append('    const int len1=sizeof(val_)-1;')
-    retVal.append('    const int len2=val.length();')
-    retVal.append('    if (len2 > len1)')
-    retVal.append('    {')
-    retVal.append("      std::ostringstream errSs;")
-    retVal.append('      errSs << "exceeded buffer length " << len2 << " > " << len1;')
-    retVal.append('      throw std::out_of_range(errSs.str());')
-    retVal.append('    }')
-    retVal.append('    memcpy(val_,val.c_str(),std::min(len1,len2));')
-    retVal.append('   }')
-
-    retVal.append('} %s;'%(userDefinedTypeName(obj.type)))
-    retVal.append('friend std::ostream& operator<<(std::ostream &ss, const %s& val) {'%(userDefinedTypeName(obj.type)))
-    retVal.append('  //return up up to the first instance of EOL, buffer is initialized to EOLs')
-    retVal.append('  int i=0;')
-    retVal.append("  while (i < sizeof(val) && val[i]!='\\0') ss << val[i++];")
-    retVal.append('  return (ss);')
-    retVal.append('}')
-    return retVal
-
-  def genVarLenTypes(self, className, objList):
-    retVal=[]
-    for obj in [el for el in objList if re.match(r'.*\(.*\).*',el.type)]:
-      m=re.match(r'.*\((\d+)\).*',obj.type)
-      if m:
-        size=m.group(1)
-        for e in self.genVarCharType(className, obj, int(size)):
-          retVal.append(e)
-    return retVal
-
+ 
   def ctorDef(self,className,objList):
     retVal=list()
     argList=["const %s& %s"%(typeConverter(el.type),el.name) for el in [e for e in objList if e[2]]]
@@ -251,7 +256,7 @@ class CppGenerator:
     retVal=[]
     for el in [el for el in objList]:
       isPrimitiveType=(re.match(r'.*\((.*)\).*',el.type)==None)
-      typeName=typeConverter(el.type) if isPrimitiveType else "%s::%s"%(className,userDefinedTypeName(el.type))
+      typeName=typeConverter(el.type) if isPrimitiveType else "%s::%s"%(className,UserTypeGenerator.typeName(el.type))
       retVal.append("%s %s::get%s() const"%(typeName,className,el.name[0].upper()+el.name[1:]));
       retVal.append("{");
       retVal.append("  return(this->%s);"%(el.name))
@@ -277,8 +282,3 @@ class CppGenerator:
       retVal.append('  this->%s=%s;'%(e.name,convertFxn))
     retVal.append('}')
     return retVal
-
-#def userDefinedTypeName(el):
-#  m=re.match(r'.*\((.*)\).*',el.type)
-#  dataSize=int(m.group(1))
-#  return 'VarChar%d'%(dataSize);

@@ -26,7 +26,7 @@ def typeConverter(className,dbType):
   try:
     retVal=TypeMapper[vType] if m else TypeMapper[dbType]
   except KeyError:
-    retVal=className+"::"+CppGenerator.userDefinedTypeName(dbType)
+    retVal=className+"::"+CppGenerator.UserTypeGenerator.typeName(dbType)
   return retVal
 
 def camelCase(el):
@@ -104,7 +104,7 @@ class TestObj:
         L.append('    const %s %s=%s;'%(typeConverter(self.name_, e.type), newVar, defaultValues(e.type)))
       else:
         L.append('    //e.type: %s'%(e.type))
-        typeName="%s::%s"%(self.name_,CppGenerator.userDefinedTypeName(e.type))
+        typeName="%s::%s"%(self.name_,CppGenerator.UserTypeGenerator.typeName(e.type))
         L.append('    const %s %s("");'%(typeName,newVar))
       for el in self.objSetter(e,newVar):
         L.append("    %s"%(el))
