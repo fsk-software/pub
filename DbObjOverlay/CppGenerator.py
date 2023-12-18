@@ -3,24 +3,26 @@ import re
 
 #--provides mapping of 'general db types' to language-specific (e.g C++)
 #-- data types
-def typeConverter(dbType):
-  m=re.match(r'.*\((.*)\).*',dbType)
-  size=m.group(1) if m else None
-  TypeMapper={
-               'float'    :  'float',
-               'bigint'   :  'long',
-               'text'     :  'std::string',
-               'char'     :  'char',
-               'int'      :  'int',
-               'long'      : 'long',
-               'double'   :  'double',
-               'date'     :  'std::string',
-               'datetime' :  'std::string',
-             }
-  VarLenMapper={
-               'char(%s)'%(size)  : 'VarChar%s'%(size),
+class TypeRegistry:
+  
+  def typeConverter(dbType):
+    m=re.match(r'.*\((.*)\).*',dbType)
+    size=m.group(1) if m else None
+    TypeMapper={
+                 'float'    :  'float',
+                 'bigint'   :  'long',
+                 'text'     :  'std::string',
+                 'char'     :  'char',
+                 'int'      :  'int',
+                 'long'      : 'long',
+                 'double'   :  'double',
+                 'date'     :  'std::string',
+                 'datetime' :  'std::string',
                }
-  return VarLenMapper[dbType] if m else TypeMapper[dbType]
+    VarLenMapper={
+                 'char(%s)'%(size)  : 'VarChar%s'%(size),
+                 }
+    return VarLenMapper[dbType] if m else TypeMapper[dbType]
 
 class UserTypeGenerator:
   @staticmethod
@@ -158,20 +160,20 @@ class CppGenerator:
  
   def ctorDef(self,className,objList):
     retVal=list()
-    argList=["const %s& %s"%(typeConverter(el.type),el.name) for el in [e for e in objList if e[2]]]
+    argList=["const %s& %s"%(TypeRegistry.typeConverter(el.type),el.name) for el in [e for e in objList if e[2]]]
     retVal.append("%s(%s);"%(className,','.join(argList)))
     return retVal
 
   def settersDef(self,className,objList):
     retVal=[]
     for el in [el for el in objList if not el.isKey]:
-      retVal.append("void set%s(const %s& val);"%(self.camelCase(el.name),typeConverter(el.type)))
+      retVal.append("void set%s(const %s& val);"%(self.camelCase(el.name),TypeRegistry.typeConverter(el.type)))
     return retVal
 
   def gettersDef(self,className,objList):
     retVal=[]
     for el in [el for el in objList]:
-      retVal.append("%s get%s() const;"%(typeConverter(el.type),el.name[0].upper()+el.name[1:]));
+      retVal.append("%s get%s() const;"%(TypeRegistry.typeConverter(el.type),el.name[0].upper()+el.name[1:]));
     return retVal
 
   def populateFromSqlDef(self, className, objList):
@@ -181,14 +183,14 @@ class CppGenerator:
     return retVal
 
   def attribDef(self,objList):
-    return ['%s%s %s;'%('const ' if e.isKey else '',typeConverter(e.type),e.name) for e in objList]
+    return ['%s%s %s;'%('const ' if e.isKey else '',TypeRegistry.typeConverter(e.type),e.name) for e in objList]
 
   #--================================================================================
   #-- Body Components
   #--================================================================================
   def ctorBody(self,className,objList):
     retVal=list()
-    argList=["const %s& %s"%(typeConverter(el.type),el.name) for el in [e for e in objList if e.isKey]]
+    argList=["const %s& %s"%(TypeRegistry.typeConverter(el.type),el.name) for el in [e for e in objList if e.isKey]]
     initList=["%s(%s)"%(e.name,e.name if e.isKey else '') for e in objList]
     fList=["%s %s%s"%(e.name,e.type,' NOT NULL' if e.isKey else '') for e in objList]
     pList=[e.name for e in objList if e.isKey]
@@ -235,7 +237,7 @@ class CppGenerator:
   def settersBody(self,className,objList):
     retVal=[]
     for el in [el for el in objList if not el.isKey]:
-      retVal.append("void %s::set%s(const %s& val)"%(className,self.camelCase(el.name),typeConverter(el.type)))
+      retVal.append("void %s::set%s(const %s& val)"%(className,self.camelCase(el.name),TypeRegistry.typeConverter(el.type)))
       retVal.append("{")
       retVal.append("  this->%s=val;"%(el.name))
       pKeyList=[el.name for el in objList if el.isKey]
@@ -254,7 +256,7 @@ class CppGenerator:
     retVal=[]
     for el in [el for el in objList]:
       isPrimitiveType=(re.match(r'.*\((.*)\).*',el.type)==None)
-      typeName=typeConverter(el.type) if isPrimitiveType else "%s::%s"%(className,UserTypeGenerator.typeName(el.type))
+      typeName=TypeRegistry.typeConverter(el.type) if isPrimitiveType else "%s::%s"%(className,UserTypeGenerator.typeName(el.type))
       retVal.append("%s %s::get%s() const"%(typeName,className,el.name[0].upper()+el.name[1:]));
       retVal.append("{");
       retVal.append("  return(this->%s);"%(el.name))
@@ -268,7 +270,7 @@ class CppGenerator:
     retVal.append('void %s::populateFromSql(const DbConnector::KvpType& kvp)'%(className))
     retVal.append('{')
     for e in mutableAttribList:
-      dType=typeConverter(e.type)
+      dType=TypeRegistry.typeConverter(e.type)
       baseTypeName=dType.split(":")[-1]
       userType=not (dType in ['int','float','text','char','long','long int','double','date','datetime'])
       if userType:
