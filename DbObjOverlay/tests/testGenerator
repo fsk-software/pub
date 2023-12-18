@@ -16,7 +16,6 @@ def typeConverter(className,dbType):
                'bigint'   :  'long',
                'text'     :  'std::string',
                'char'     :  'char',
-#              'char()'   :  'std::string',
                'int'      :  'int',
                'long'      : 'long',
                'double'   :  'double',

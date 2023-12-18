@@ -44,8 +44,6 @@ class UserTypeGenerator:
       retVal.append('     char val_[%s];'%(size))
       retVal.append('     const char& operator[](int i) const { return val_[i];}')
       retVal.append('     char& operator[](int i){return val_[i];}')
-#     retVal.append('     bool operator==(const type%s& val) const { return true; }'%(size))
-#     retVal.append('     bool operator==(const type%s& val) const { bool retVal=true; for(int i=0; i<sizeof(val_); ++i) { retVal&= val.val_[i]==val_[i]; } return retVal; }'%(size))
       retVal.append('     bool operator==(const type%s& val) const { '%(size))
       retVal.append('       bool retVal=true; ')
       retVal.append('       for(int i=0; i<sizeof(val_); ++i) { ')
@@ -79,7 +77,6 @@ class UserTypeGenerator:
       retVal.append("  while (i < sizeof(val) && val[i]!='\\0') ss << val[i++];")
       retVal.append('  return (ss);')
       retVal.append('}')
-
 
     return retVal
 
@@ -158,18 +155,12 @@ class CppGenerator:
       retVal.append("    %s"%(el))
     retVal.append("};");
     return retVal
-
  
   def ctorDef(self,className,objList):
     retVal=list()
     argList=["const %s& %s"%(typeConverter(el.type),el.name) for el in [e for e in objList if e[2]]]
     retVal.append("%s(%s);"%(className,','.join(argList)))
     return retVal
-
-# def setterSigniture(el):
-#   retVal=[]
-#   retVal.append('void set%s(%s %s)'%(self.camelCase(el.name),'el.type','el.name'))
-#   return retVal
 
   def settersDef(self,className,objList):
     retVal=[]
@@ -191,7 +182,6 @@ class CppGenerator:
 
   def attribDef(self,objList):
     return ['%s%s %s;'%('const ' if e.isKey else '',typeConverter(e.type),e.name) for e in objList]
-
 
   #--================================================================================
   #-- Body Components

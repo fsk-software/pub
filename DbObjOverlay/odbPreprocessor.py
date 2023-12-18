@@ -62,7 +62,6 @@ if __name__ == "__main__":
   parser.add_argument('--verbose',action='store_true', default=False)
   parser.add_argument('--input',action='store',required=True)
   parser.add_argument('--lang',action='store',required=True)
-# parser.add_argument('--outfile',action='store',required=True)
   args,unk = parser.parse_known_args()
   
   if args.verbose:
