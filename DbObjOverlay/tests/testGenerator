@@ -6,27 +6,7 @@ sys.path.append('../')
 import odbPreprocessor
 import re
 import CppGenerator
-
-def typeConverter(className,dbType):
-  #@todo: duplicated from CppGenerator
-  m=re.match(r'.*\((.*)\).*',dbType)
-  vType=dbType.replace("(%s)"%(m.group(1)),"()") if m else dbType
-  TypeMapper={
-               'float'    :  'float',
-               'bigint'   :  'long',
-               'text'     :  'std::string',
-               'char'     :  'char',
-               'int'      :  'int',
-               'long'      : 'long',
-               'double'   :  'double',
-               'date'     :  'std::string',
-               'datetime' :  'std::string',
-             }
-  try:
-    retVal=TypeMapper[vType] if m else TypeMapper[dbType]
-  except KeyError:
-    retVal=className+"::"+CppGenerator.UserTypeGenerator.typeName(dbType)
-  return retVal
+from CppGenerator import TypeRegistry
 
 def camelCase(el):
     retVal=[el[0].upper()+el[1:]]
@@ -65,7 +45,8 @@ class TestObj:
     i=0
     pKeyList=[]
     for pKey in pKeys:
-      dType=typeConverter(self.name_, pKey.type)
+      L.append("//pKey.type: %s"%(str(pKey.type)))
+      dType=TypeRegistry.typeConverter(pKey.type) if TypeRegistry.isPrimitiveType(pKey.type) else "%s::%s"%(self.name_,TypeRegistry.typeConverter(pKey.type))
       keyVarName='pKey%d'%(i)
       pKeyList.append(keyVarName)
       if pKey.type in ['int','float','double','text','char','bigint','long']:
@@ -100,7 +81,9 @@ class TestObj:
       L.append('  {')
       newVar='newVal'
       if e.type in ['float','bigint','text','char','int','long','double','date','datetime']:
-        L.append('    const %s %s=%s;'%(typeConverter(self.name_, e.type), newVar, defaultValues(e.type)))
+        varDeclaration=TypeRegistry.typeConverter(e.type) if TypeRegistry.isPrimitiveType(e.type) else "%s::%s"%(self.name_,TypeRegistry.typeConverter(e.type))
+        print("varDeclaration:",varDeclaration)
+        L.append('    const %s %s=%s;'%(varDeclaration, newVar, defaultValues(e.type)))
       else:
         L.append('    //e.type: %s'%(e.type))
         typeName="%s::%s"%(self.name_,CppGenerator.UserTypeGenerator.typeName(e.type))

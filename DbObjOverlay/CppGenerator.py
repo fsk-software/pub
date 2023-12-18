@@ -4,11 +4,13 @@ import re
 #--provides mapping of 'general db types' to language-specific (e.g C++)
 #-- data types
 class TypeRegistry:
-  
+  def isPrimitiveType(typeName):
+    return typeName in ['float','bigint','text','char','int','long','double','date','datetime']
+
   def typeConverter(dbType):
     m=re.match(r'.*\((.*)\).*',dbType)
     size=m.group(1) if m else None
-    TypeMapper={
+    PrimitiveTypeMapper={
                  'float'    :  'float',
                  'bigint'   :  'long',
                  'text'     :  'std::string',
@@ -22,7 +24,7 @@ class TypeRegistry:
     VarLenMapper={
                  'char(%s)'%(size)  : 'VarChar%s'%(size),
                  }
-    return VarLenMapper[dbType] if m else TypeMapper[dbType]
+    return VarLenMapper[dbType] if m else PrimitiveTypeMapper[dbType]
 
 class UserTypeGenerator:
   @staticmethod
