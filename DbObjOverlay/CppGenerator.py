@@ -217,8 +217,9 @@ class CppGenerator:
     retVal.append('      if(isDup)')
     retVal.append('      {')
     retVal.append('        std::ostringstream ss;')
-    retVal.append('        ss << "SELECT * FROM %s WHERE %s=\'" << this->val01 << "\' LIMIT 1;";'%(className,argList[0]))
-    retVal.append('        DbConnector::KvpList results=DbConnector::instance()->executeQuery("SELECT * from %s WHERE val01=\'1\' LIMIT 1");'%(className))
+    keyFields=[el for el in objList if el.isKey]
+    retVal.append('        ss << "SELECT * FROM %s WHERE %s=\'" << this->%s << "\' LIMIT 1;";'%(className,argList[0],keyFields[0].name))
+    retVal.append('        DbConnector::KvpList results=DbConnector::instance()->executeQuery("SELECT * from %s WHERE %s=\'1\' LIMIT 1");'%(className,keyFields[0].name))
     retVal.append('        populateFromSql(results.at(0));')
     retVal.append('      }')
     retVal.append('      else')
@@ -245,7 +246,7 @@ class CppGenerator:
       pKeyList=[el.name for el in objList if el.isKey]
       pKeyName=pKeyList[0]
       retVal.append("  std::ostringstream pKeyVal;");
-      retVal.append("  pKeyVal << this->val01;")
+      retVal.append("  pKeyVal << this->%s;"%(pKeyName))
       retVal.append("  std::ostringstream valSS;");
       retVal.append("  valSS << this->%s;"%(el.name))
       updateSql="UPDATE %s SET %s='%s' WHERE %s='%s'"%(className,el.name,'"+valSS.str()+"',pKeyName,'"+pKeyVal.str()+"')
@@ -271,15 +272,15 @@ class CppGenerator:
     mutableAttribList=[el for el in objList if not el.isKey]
     retVal.append('void %s::populateFromSql(const DbConnector::KvpType& kvp)'%(className))
     retVal.append('{')
+    pKeyList=[el.name for el in objList if el.isKey]
     for e in mutableAttribList:
       dType=TypeRegistry.typeConverter(e.type)
       baseTypeName=dType.split(":")[-1]
-      userType=not (dType in ['int','float','text','char','long','long int','double','date','datetime'])
+      userType=not TypeRegistry.isPrimitiveType(dType)
       if userType:
         convertFxn='kvp.at("%s");'%(e.name)
       else:
         convertFxn='DbConnector::convertTo%s(%s)'%(self.camelCase(baseTypeName),'kvp.at("%s")'%(e.name))
-      logging.debug("userType: %s"%(userType))
       logging.debug("converter function: %s"%(convertFxn))
       retVal.append('  this->%s=%s;'%(e.name,convertFxn))
     retVal.append('}')

@@ -97,3 +97,9 @@ dbclass MyRecord301
   char(55) val16;
   char(66) val17;
 end;
+
+#--test non-first primary key
+dbclass MyRecord401
+  text val01;
+  int val02 as key;
+end;
