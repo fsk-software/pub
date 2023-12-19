@@ -3,7 +3,7 @@ LIBS += -L/usr/lib -lmysqlcppconn -llog4cxx
 INCLUDE+="-I../"
 
 all: Foo.cpp Foo
-	${SH} ./Foo
+	${SH} ./Foo | tee Foo.log
 
 Foo.cpp: MyTestDb01.odb
 	${SH} ./testGenerator --verbose --input $^ --outfile $@ 
@@ -19,5 +19,6 @@ clean:
 	${SH} rm -f $(shell find . -name "*.odb" | sed -e 's/.odb/.cpp/')
 	${SH} rm -f $(shell find . -name "*.odb" | sed -e 's/.odb/.h/')
 	${RM} Foo Foo.cpp
+	${RM} *.log
 	${RM} -rf ./__pycache__
 
