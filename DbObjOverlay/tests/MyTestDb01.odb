@@ -75,14 +75,14 @@ dbclass MyRecord201
 end;
 
 #--Duplicate uses of same datatype
-dbclass MyRecord201
+dbclass MyRecord301
   int val01 as key;
   char(11) val02;
   char(11) val03;
 end;
 
 #--Variety of user-defined data types
-dbclass MyRecord301
+dbclass MyRecord401
   int val01 as key;
   char(11) val02;
   char(22) val03;
@@ -99,7 +99,7 @@ dbclass MyRecord301
 end;
 
 #--test non-first primary key
-dbclass MyRecord401
+dbclass MyRecord501
   text val01;
   int val02 as key;
 end;

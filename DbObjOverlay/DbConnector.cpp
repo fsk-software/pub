@@ -38,6 +38,7 @@ void DbConnector::execute(const std::string& command)
 
 DbConnector::KvpList DbConnector::executeQuery(const std::string& command)
 {
+  LOG4CXX_DEBUG(log4cxx::Logger::getLogger("main"),"executing: '" << command << "'");
   KvpList retVal;
   const auto startTs{std::chrono::steady_clock::now()};
   sql::Statement *stmt = con->createStatement();

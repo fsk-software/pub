@@ -1,9 +1,10 @@
 .PHONY: test
 
 setup:
-#	${SH} sudo apt-get install -y libmysqlcppconn-dev
-#	${SH} sudo apt-get install -y mysql-server
+	${SH} sudo apt-get install -y libmysqlcppconn-dev
+	${SH} sudo apt-get install -y mysql-server
 #	${SH} sudo apt-get install -y python-mysql.connector
+	${SH} sudo apt-get install -y python3-mysql.connector
 	${SH} sudo mysql -u root -e "CREATE USER 'dbadmin'@'localhost' IDENTIFIED BY 'Mariner'; GRANT ALL ON *.* TO 'dbadmin'@'localhost';"
 	${SH} sudo apt-get install -y liblog4cxx-dev
 

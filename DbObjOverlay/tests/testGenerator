@@ -36,16 +36,15 @@ class TestObj:
     self.objList_=objList
     self.testNames_=[]
     self.tests_+=self.simpleTest()
+    self.tests_+=self.randomTest()
 
   def objCtor(self,objName):
     L=[]
     pKeys=[el for el in self.objList_ if el.isKey]
-    L.append("//pKeys: %s"%(str(pKeys)))
     pKey=pKeys[0]
     i=0
     pKeyList=[]
     for pKey in pKeys:
-      L.append("//pKey.type: %s"%(str(pKey.type)))
       dType=TypeRegistry.typeConverter(pKey.type) if TypeRegistry.isPrimitiveType(pKey.type) else "%s::%s"%(self.name_,TypeRegistry.typeConverter(pKey.type))
       keyVarName='pKey%d'%(i)
       pKeyList.append(keyVarName)
@@ -76,16 +75,13 @@ class TestObj:
     for e in self.objCtor('obj'):
       L.append('  %s'%(e))
     mutableFields=[el for el in self.objList_ if not el.isKey]
-    L.append("  // mutable: %s"%(str(mutableFields)))
     for e in mutableFields:
       L.append('  {')
       newVar='newVal'
       if e.type in ['float','bigint','text','char','int','long','double','date','datetime']:
         varDeclaration=TypeRegistry.typeConverter(e.type) if TypeRegistry.isPrimitiveType(e.type) else "%s::%s"%(self.name_,TypeRegistry.typeConverter(e.type))
-        print("varDeclaration:",varDeclaration)
         L.append('    const %s %s=%s;'%(varDeclaration, newVar, defaultValues(e.type)))
       else:
-        L.append('    //e.type: %s'%(e.type))
         typeName="%s::%s"%(self.name_,CppGenerator.UserTypeGenerator.typeName(e.type))
         L.append('    const %s %s("");'%(typeName,newVar))
       for el in self.objSetter(e,newVar):
@@ -102,6 +98,52 @@ class TestObj:
     L.append('}')
     L.append('')
     return L
+
+  def randomTest(self):
+    L=[]
+    fxnName='test%05d'%(self.id_)
+    fxnName='test%sRandomTest'%(self.name_)
+    self.testNames_.append("")
+    L.append('void %s()'%(fxnName))
+    L.append('{')
+    L.append('  dropTable("%s");'%(self.name_))
+    pKeys=[el for el in self.objList_ if el.isKey]
+    mutableFields=[el for el in self.objList_ if not el.isKey]
+    vEl=pKeys[0]
+    if TypeRegistry.isPrimitiveType(vEl.type):
+      dType=TypeRegistry.typeConverter(vEl.type)
+    else:
+      dType="%s::%s"%(self.name_,TypeRegistry.typeConverter(vEl.type))
+    L.append("  for(int i=0; i<10; ++i)")
+    L.append("  {")
+    if 'VarChar' in dType:
+      L.append('    const %s pKey("%s");'%(dType,"abc"))
+    else:
+      L.append("    const %s pKey=%s;"%(dType,"rando%s()"%(camelCase(dType))))
+    L.append("    %s obj(%s);"%(self.name_,'pKey'))
+    for e in mutableFields:
+      vType=TypeRegistry.typeConverter(e.type).replace("std::","")
+      L.append("    for(int k=0; k<10; ++k)")
+      L.append("    {")
+      typeDef=TypeRegistry.typeConverter(e.type)
+      if 'VarChar' in typeDef:
+        typeDef="%s::%s"%(self.name_,typeDef)
+      if 'VarChar' in typeDef:
+        L.append('      const %s newVal("%s");'%(typeDef,"ABC"))
+      else:
+        L.append("      const %s newVal=rando%s();"%(typeDef,camelCase(vType)))
+      L.append("      obj.set%s(newVal);"%(camelCase(e.name)))
+      L.append("      assert(newVal==obj.get%s());"%(camelCase(e.name)))
+      L.append("    }")
+      L.append("    {")
+      L.append("      %s obj2(pKey);"%(self.name_))
+      L.append("      assert(obj2.get%s()==obj.get%s());"%(camelCase(e.name),camelCase(e.name)))
+      L.append("    }")
+    L.append("  }")
+    L.append('}')
+    L.append('')
+    return L
+
 
 class TestModule:
   def __init__(self,name,objList):
@@ -137,6 +179,58 @@ def helperFunctions():
   L.append("  {");
   L.append("  }");
   L.append("}");
+  L.append("char randoChar()")
+  L.append("{")
+  L.append('  const std::string CHARACTERS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";')
+  L.append("  static std::random_device random_device;")
+  L.append("  static std::mt19937 generator(random_device());")
+  L.append("  static std::uniform_int_distribution<> distribution(0, CHARACTERS.size() - 1);")
+  L.append("")
+  L.append("  return(CHARACTERS[distribution(generator)]);")
+  L.append("}")
+  L.append("std::string randoString()")
+  L.append("{")
+  L.append("  const int length=100;")
+  L.append('  const std::string CHARACTERS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";')
+  L.append("  static std::random_device random_device;")
+  L.append("  static std::mt19937 generator(random_device());")
+  L.append("  static std::uniform_int_distribution<> distribution(0, CHARACTERS.size() - 1);")
+  L.append("")
+  L.append("  std::string random_string;")
+  L.append("  for (std::size_t i = 0; i < length; ++i)")
+  L.append("  {")
+  L.append("      random_string += CHARACTERS[distribution(generator)];")
+  L.append("  }")
+  L.append("  return random_string;")
+  L.append("}")
+  L.append("")
+  L.append("float randoFloat()")
+  L.append("{")
+  L.append("  static std::default_random_engine e;")
+  L.append("  static std::uniform_int_distribution<> dis(-32767,32767); // take care to avoid values that lose precision in equal comparison")
+  L.append("  return float(dis(e))/1000.0;")
+  L.append("}")
+  L.append("")
+  L.append("int randoInt()")
+  L.append("{")
+  L.append("  static std::default_random_engine e;")
+  L.append("  static std::uniform_int_distribution<> dis(-32767,32767); ")
+  L.append("  return dis(e);")
+  L.append("}")
+  L.append("")
+  L.append("long randoLong()")
+  L.append("{")
+  L.append("  static std::default_random_engine e;")
+  L.append("  static std::uniform_int_distribution<> dis(-32767,32767); ")
+  L.append("  return dis(e);")
+  L.append("}")
+  L.append("")
+  L.append("double randoDouble()")
+  L.append("{")
+  L.append("  static std::default_random_engine e;")
+  L.append("  static std::uniform_int_distribution<> dis(-32767,32767); // take care to avoid values that lose precision in equal comparison")
+  L.append("  return double(dis(e))/1000.0;")
+  L.append("}")
   return retVal
 
 #--main--
@@ -159,6 +253,7 @@ if __name__ == "__main__":
   L.append('#include "log4cxx/logger.h"')
   L.append('#include "log4cxx/basicconfigurator.h"')
   L.append('#include <chrono>')
+  L.append('#include <random>')
   for e in args.input:
     L.append('#include "%s.h"'%(e.replace('.odb','')))
   for e in helperFunctions():
@@ -173,7 +268,6 @@ if __name__ == "__main__":
   L.append('  LoggerPtr logger(Logger::getLogger("main"));')
   L.append('  const auto startTs{std::chrono::steady_clock::now()};')
   testFxns=[el for el in tL if re.match('.*void test.*()',el)]
-  print("testFxns:",testFxns)
   for e in testFxns:
     call=e.split(' ')[1]
     L.append('  %s;'%(call))
